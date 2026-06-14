@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/db";
-import { createFromDraft, itemInclude, uniqueSlug } from "../../../lib/items";
+import { createFromBookDraft, createFromDraft, itemInclude, uniqueSlug } from "../../../lib/items";
 import { isItemType } from "../../../lib/types";
 import { requireRole } from "../../../lib/auth";
 
@@ -39,6 +39,17 @@ export async function POST(req: Request) {
   }
 
   // Path 1: persist an ingestion draft (external).
+  // Path 0: persist a book draft (from importBook).
+  if (body?.bookDraft) {
+    try {
+      const item = await createFromBookDraft(body.bookDraft);
+      return NextResponse.json({ item }, { status: 201 });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save book.";
+      return NextResponse.json({ error: msg }, { status: 422 });
+    }
+  }
+
   if (body?.draft) {
     try {
       const item = await createFromDraft(body.draft);

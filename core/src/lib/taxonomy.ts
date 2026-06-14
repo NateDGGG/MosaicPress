@@ -114,3 +114,12 @@ export async function assignDefaultToUntagged() {
   }
   return untagged.length;
 }
+
+// Topics flagged to appear on the home page.
+export async function homeTags() {
+  return prisma.tag.findMany({ where: { showOnHome: true }, orderBy: { name: "asc" } });
+}
+
+export async function setShowOnHome(id: string, value: boolean) {
+  return prisma.tag.update({ where: { id }, data: { showOnHome: value } });
+}

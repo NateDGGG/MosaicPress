@@ -2,7 +2,10 @@
   "name": "@mosaic/project-base",
   "version": "0.1.0",
   "private": true,
-  "prisma": { "schema": "schema.prisma", "seed": "tsx prisma/seed.ts" },
+  "prisma": {
+    "schema": "schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "sync": "node ../../core/scripts/sync-routes.mjs .",
     "dev": "next dev",
@@ -10,7 +13,7 @@
     "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push --skip-generate --accept-data-loss",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "prisma db seed",
     "setup": "npm run sync && npm run db:generate && npm run db:push && npm run db:seed"
   },
   "dependencies": {

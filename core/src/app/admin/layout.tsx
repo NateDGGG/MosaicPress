@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <>
             <Link href="/admin/plans" className="text-sm text-slate-600 hover:text-brand">Plans</Link>
             <Link href="/admin/settings" className="text-sm text-slate-600 hover:text-brand">Settings</Link>
+            <Link href="/admin/about" className="text-sm text-slate-600 hover:text-brand">About</Link>
             <Link href="/admin/users" className="text-sm text-slate-600 hover:text-brand">Users</Link>
           </>
         )}
@@ -35,6 +36,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <Link href="/admin/new-from-link" className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark">
             + New from link
+          </Link>
+          <Link href="/admin/import-book" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
+            + Import book
+          </Link>
+          <Link href="/admin/bulk-import" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
+            + Bulk import
           </Link>
           <SignOutButton />
         </div>

@@ -45,6 +45,7 @@ model Item {
   videoMeta   VideoMeta?
   productMeta ProductMeta?
   linkMeta    LinkMeta?
+  bookMeta    BookMeta?
 
   // Collection membership (ordered, mixed types & sources)
   collections CollectionItem[]
@@ -74,6 +75,7 @@ model Tag {
   slug      String    @unique
   name      String
   isDefault Boolean   @default(false) // content with no topic falls under this one
+  showOnHome Boolean  @default(true)  // show this topic on the home page
   items     ItemTag[]
 }
 
@@ -240,4 +242,18 @@ model OrderLine {
   title        String
   unitCents    Int
   quantity     Int     @default(1)
+}
+
+// Present when type = book. Rich info imported from a book link.
+model BookMeta {
+  id            String   @id @default(cuid())
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String   @unique
+  isbn          String?
+  authors       String?  // comma-separated author names
+  description   String?  // the "about" content
+  pageCount     Int?
+  publishedYear Int?
+  publisher     String?
+  buyUrl        String?  // outbound link to view/buy the book
 }

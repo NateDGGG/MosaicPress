@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import type { NormalizedDraft } from "./types";
+import type { BookDraft } from "./books";
 
 export function slugify(input: string): string {
   return (
@@ -30,6 +31,7 @@ export const itemInclude = {
   videoMeta: true,
   productMeta: true,
   linkMeta: true,
+  bookMeta: true,
   presenter: true,
   tags: { include: { tag: true } },
 } as const;
@@ -115,4 +117,45 @@ export function durationFormat(seconds?: number | null): string | null {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Persist a book draft (from importBook) as a published-ready book Item.
+export async function createFromBookDraft(draft: BookDraft) {
+  const slug = await uniqueSlug(draft.title);
+  return prisma.item.create({
+    data: {
+      slug,
+      type: "book",
+      source: "external",
+      title: draft.title,
+      summary: draft.summary,
+      coverImage: draft.coverImage,
+      author: draft.author,
+      status: "draft",
+      external: {
+        create: {
+          url: draft.book.buyUrl,
+          sourceName: draft.book.sourceName,
+          sourceDomain: draft.book.sourceDomain,
+          favicon: draft.book.sourceDomain
+            ? `https://www.google.com/s2/favicons?domain=${draft.book.sourceDomain}&sz=64`
+            : null,
+          embedAllowed: false,
+          adapter: "book",
+        },
+      },
+      bookMeta: {
+        create: {
+          isbn: draft.book.isbn,
+          authors: draft.book.authors.join(", ") || null,
+          description: draft.book.description,
+          pageCount: draft.book.pageCount,
+          publishedYear: draft.book.publishedYear,
+          publisher: draft.book.publisher,
+          buyUrl: draft.book.buyUrl,
+        },
+      },
+    },
+    include: itemInclude,
+  });
 }

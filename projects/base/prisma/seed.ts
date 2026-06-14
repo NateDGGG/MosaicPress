@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 
-const prisma = new PrismaClient();
+import { prisma } from "@mosaic/core/lib/db";
 
 // Inline scrypt hash (mirrors src/lib/auth.ts) so the seed doesn't import
 // Next-only modules.

@@ -39,6 +39,7 @@ export default async function RootChrome({ children }: { children: React.ReactNo
               <Link href="/topics" className="hover:text-white">Topics</Link>
               <Link href="/presenters" className="hover:text-white">Presenters</Link>
               <Link href="/membership" className="hover:text-white">Membership</Link>
+              <Link href="/about" className="hover:text-white">About</Link>
               <Link href="/search" className="hover:text-white" aria-label="Search">Search</Link>
               <CartButton />
               {isStaff(user) ? (

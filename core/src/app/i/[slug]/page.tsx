@@ -182,6 +182,34 @@ export default async function ItemPage({ params }: { params: { slug: string } })
         </div>
       )}
 
+      {/* ---------- BOOK ---------- */}
+      {type === "book" && (
+        <div className="mb-6 flex flex-col gap-6 sm:flex-row">
+          {item.coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.coverImage} alt="" className="mx-auto w-44 shrink-0 rounded-lg object-contain shadow-md sm:mx-0" />
+          )}
+          <div className="min-w-0">
+            {item.bookMeta?.authors && <p className="text-slate-600">by {item.bookMeta.authors}</p>}
+            <p className="mt-2 text-sm text-slate-500">
+              {[item.bookMeta?.publishedYear, item.bookMeta?.pageCount ? `${item.bookMeta.pageCount} pages` : null, item.bookMeta?.publisher, item.bookMeta?.isbn ? `ISBN ${item.bookMeta.isbn}` : null].filter(Boolean).join(" · ")}
+            </p>
+            {(item.bookMeta?.buyUrl || ext?.url) && (
+              <a href={item.bookMeta?.buyUrl || ext?.url} target="_blank" rel="noopener noreferrer nofollow"
+                className="mt-4 inline-block rounded-lg bg-brand px-5 py-2.5 font-semibold text-white hover:bg-brand-dark">
+                {action} ↗
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+      {type === "book" && item.bookMeta?.description && (
+        <div className="prose-body">
+          <h2>About this book</h2>
+          <p className="whitespace-pre-line text-slate-700">{item.bookMeta.description}</p>
+        </div>
+      )}
+
       {/* ---------- ARTICLE / LINK cover ---------- */}
       {(type === "article" || type === "link") && item.coverImage && (
         // eslint-disable-next-line @next/next/no-img-element

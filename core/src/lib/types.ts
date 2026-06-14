@@ -1,6 +1,6 @@
 // Allowed values for the String "enum" columns (SQLite has no native enums).
 
-export const ITEM_TYPES = ["article", "video", "product", "link"] as const;
+export const ITEM_TYPES = ["article", "video", "product", "link", "book"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
 export const SOURCES = ["hosted", "external"] as const;
@@ -47,6 +47,7 @@ export const TYPE_LABELS: Record<ItemType, string> = {
   video: "Video",
   product: "Product",
   link: "Link",
+  book: "Book",
 };
 
 // Human-friendly action label for a card/page given type + source.
@@ -57,6 +58,7 @@ export function actionLabel(type: ItemType, source: Source, sourceName?: string 
       case "video": return "Watch";
       case "product": return "Buy";
       case "link": return "Open";
+      case "book": return "Read";
     }
   }
   const where = sourceName || "source";
@@ -65,5 +67,6 @@ export function actionLabel(type: ItemType, source: Source, sourceName?: string 
     case "video": return `Watch on ${where}`;
     case "product": return `Buy on ${where}`;
     case "link": return `Open ${where}`;
+    case "book": return `View on ${where}`;
   }
 }

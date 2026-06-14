@@ -13,6 +13,10 @@ export interface SiteSettings {
   fontFamily: string;
   currency: string;
   footerText: string;
+  groupByType: boolean;
+  showSidebar: boolean;
+  aboutTitle: string;
+  aboutBody: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -25,6 +29,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   currency: "USD",
   footerText: "Mosaic Learn — a demo built on Mosaic.",
+  groupByType: false,
+  showSidebar: false,
+  aboutTitle: "About",
+  aboutBody: "",
 };
 
 const SETTINGS_KEY = "site";

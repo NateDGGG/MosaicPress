@@ -16,6 +16,7 @@ const TYPE_COLOR: Record<ItemType, string> = {
   video: "bg-rose-100 text-rose-700",
   product: "bg-purple-100 text-purple-700",
   link: "bg-cyan-100 text-cyan-700",
+  book: "bg-amber-100 text-amber-800",
 };
 
 function SourceTag({ item }: { item: FullItem }) {

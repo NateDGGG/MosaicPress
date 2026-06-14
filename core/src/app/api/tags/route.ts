@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../lib/auth";
-import { deleteTag, ensureTag, listTags, renameTag, setDefaultTag } from "../../../lib/taxonomy";
+import { deleteTag, ensureTag, listTags, renameTag, setDefaultTag, setShowOnHome } from "../../../lib/taxonomy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +44,10 @@ export async function PATCH(req: Request) {
   const body = await req.json().catch(() => ({}));
   if (!body?.id) return NextResponse.json({ error: "id required." }, { status: 400 });
   try {
+    if (typeof body.showOnHome === "boolean") {
+      const tag = await setShowOnHome(body.id, body.showOnHome);
+      return NextResponse.json({ tag });
+    }
     if (body.makeDefault) {
       const tag = await setDefaultTag(body.id);
       return NextResponse.json({ tag });

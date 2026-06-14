@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
 import { ingestUrl } from "@mosaic/core/lib/ingest";
 
-const prisma = new PrismaClient();
+import { prisma } from "@mosaic/core/lib/db";
 
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");

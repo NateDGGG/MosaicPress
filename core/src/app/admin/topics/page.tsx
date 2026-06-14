@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Tag = { id: string; slug: string; name: string; isDefault: boolean };
+type Tag = { id: string; slug: string; name: string; isDefault: boolean; showOnHome: boolean };
 
 export default function AdminTopics() {
   const [tags, setTags] = useState<Tag[]>([]);
@@ -61,6 +61,11 @@ export default function AdminTopics() {
     if (await api("PATCH", { id, makeDefault: true })) { await load(); setMsg("Default topic updated."); }
     setBusy(false);
   }
+  async function toggleHome(t: Tag) {
+    setBusy(true);
+    if (await api("PATCH", { id: t.id, showOnHome: !t.showOnHome })) { await load(); }
+    setBusy(false);
+  }
   async function remove(id: string, label: string) {
     if (!confirm(`Delete "${label}"? Its content will move to the default topic.`)) return;
     setBusy(true);
@@ -79,7 +84,7 @@ export default function AdminTopics() {
       <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr><th className="px-3 py-2">Topic</th><th className="px-3 py-2 w-28">Default</th><th className="px-3 py-2 text-right">Actions</th></tr>
+            <tr><th className="px-3 py-2">Topic</th><th className="px-3 py-2 w-20">Home</th><th className="px-3 py-2 w-28">Default</th><th className="px-3 py-2 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {tags.map((t) => (
@@ -91,6 +96,9 @@ export default function AdminTopics() {
                     className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:border-brand focus:outline-none"
                   />
                   <a href={`/topics/${t.slug}`} className="text-xs text-slate-400 hover:text-brand">/topics/{t.slug}</a>
+                </td>
+                <td className="px-3 py-2">
+                  <input type="checkbox" checked={t.showOnHome} onChange={() => toggleHome(t)} disabled={busy} title="Show this topic on the home page" />
                 </td>
                 <td className="px-3 py-2">
                   {t.isDefault ? (
@@ -123,7 +131,7 @@ export default function AdminTopics() {
               </tr>
             ))}
             {loading && <tr><td colSpan={3} className="px-3 py-6 text-center text-slate-400">Loading…</td></tr>}
-            {!loading && tags.length === 0 && !error && <tr><td colSpan={3} className="px-3 py-6 text-center text-slate-400">No topics yet.</td></tr>}
+            {!loading && tags.length === 0 && !error && <tr><td colSpan={4} className="px-3 py-6 text-center text-slate-400">No topics yet.</td></tr>}
           </tbody>
         </table>
       </div>

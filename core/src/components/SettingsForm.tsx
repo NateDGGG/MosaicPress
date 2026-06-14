@@ -108,6 +108,18 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-3 font-semibold">Layout</h2>
+        <label className="mb-2 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={s.groupByType} onChange={(e) => set("groupByType", e.target.checked)} />
+          Group content by type on the home page (Articles, Videos, … as separate sections)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={s.showSidebar} onChange={(e) => set("showSidebar", e.target.checked)} />
+          Show a left sidebar to filter by content type and topic
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="mb-3 font-semibold">Commerce</h2>
         <label className={label}>Default currency</label>
         <input value={s.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())}
