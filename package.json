@@ -1,0 +1,8 @@
+{
+  "name": "mosaic-monorepo",
+  "private": true,
+  "workspaces": ["core", "projects/*"],
+  "scripts": {
+    "test": "npm --workspace @mosaic/core run test"
+  }
+}

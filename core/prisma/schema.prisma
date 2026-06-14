@@ -1,0 +1,243 @@
+// Mosaic — data model
+// SQLite has no native enums; we use String fields validated in app code.
+// See src/lib/types.ts for the allowed values.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Item — the unified content unit. Two independent axes:
+//   type   = what it is        (article | video | product | link)
+//   source = where it lives    (hosted | external)
+// Rendering is driven by `type`; the only visible difference for `source`
+// is the action a card/page exposes (read here vs. read on source, etc.).
+// ----------------------------------------------------------------------------
+model Item {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  type        String // article | video | product | link
+  source      String // hosted | external
+  title       String
+  summary     String?
+  coverImage  String? // URL (local /uploads or remote)
+  status      String   @default("draft") // draft | scheduled | published
+  access      String   @default("public") // public | members
+  featured    Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author    String?
+  seoTitle  String?
+  seoDesc   String?
+
+  // Hosted article/rich body — block JSON stored as text. Null for external.
+  body String?
+
+  // 1:1 type-specific + source-specific extensions
+  external    ExternalSource?
+  videoMeta   VideoMeta?
+  productMeta ProductMeta?
+  linkMeta    LinkMeta?
+
+  // Collection membership (ordered, mixed types & sources)
+  collections CollectionItem[]
+  orderLines  OrderLine[]
+
+  // Presenter (host) and topic taxonomy
+  presenter   Presenter? @relation(fields: [presenterId], references: [id])
+  presenterId String?
+  tags        ItemTag[]
+}
+
+// A presenter / host whose content can be browsed together.
+model Presenter {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  title     String? // e.g. "Economist", "Historian"
+  bio       String?
+  photo     String?
+  sortOrder Int      @default(0)
+  items     Item[]
+}
+
+// A topic / category. Many-to-many with items via ItemTag.
+model Tag {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  isDefault Boolean   @default(false) // content with no topic falls under this one
+  items     ItemTag[]
+}
+
+model ItemTag {
+  id     String @id @default(cuid())
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  @@unique([tagId, itemId])
+}
+
+// Present only when source = external.
+model ExternalSource {
+  id           String   @id @default(cuid())
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId       String   @unique
+  url          String
+  canonicalUrl String?
+  sourceName   String? // e.g. "YouTube", "The New York Times"
+  sourceDomain String? // e.g. "youtube.com"
+  favicon      String?
+  embedHtml    String? // sanitized embed markup, when allowed
+  embedAllowed Boolean  @default(false)
+  readerExcerpt String?
+  adapter      String? // which extractor produced this (oembed | opengraph | scrape)
+  fetchedAt    DateTime @default(now())
+  lastSyncedAt DateTime @default(now())
+  syncStatus   String   @default("ok") // ok | stale | broken | paywalled
+  rawMetadata  String? // raw pull, JSON text
+}
+
+model VideoMeta {
+  id         String  @id @default(cuid())
+  item       Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId     String  @unique
+  playerUrl  String? // hosted file URL or embeddable player URL
+  duration   Int? // seconds
+  transcript String?
+  chapters   String? // JSON text
+}
+
+model ProductMeta {
+  id            String  @id @default(cuid())
+  item          Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String  @unique
+  priceCents    Int?
+  currency      String  @default("USD")
+  kind          String  @default("physical") // physical | digital
+  inventory     Int?
+  fileUrl       String? // digital download (hosted)
+  buyUrl        String? // outbound buy link (external/affiliate)
+  priceCheckedAt DateTime?
+}
+
+model LinkMeta {
+  id     String  @id @default(cuid())
+  item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String  @unique
+  url    String
+  note   String?
+}
+
+model Collection {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  title       String
+  description String?
+  coverImage  String?
+  layout      String           @default("grid")
+  createdAt   DateTime         @default(now())
+  items       CollectionItem[]
+}
+
+model CollectionItem {
+  id           String     @id @default(cuid())
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId       String
+  position     Int        @default(0)
+
+  @@unique([collectionId, itemId])
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  role          String         @default("owner") // owner | editor | contributor | member
+  passwordHash  String? // scrypt hash; null = not set yet
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
+}
+
+// A membership plan customers can subscribe to.
+model Plan {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  priceCents    Int
+  currency      String         @default("USD")
+  interval      String         @default("month") // month | year
+  stripePriceId String? // optional pre-created Stripe Price
+  active        Boolean        @default(true)
+  sortOrder     Int            @default(0)
+  subscriptions Subscription[]
+}
+
+// A customer's subscription to a plan.
+model Subscription {
+  id               String    @id @default(cuid())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  plan             Plan      @relation(fields: [planId], references: [id])
+  planId           String
+  status           String    @default("active") // active | canceled | past_due | incomplete
+  provider         String    @default("stub") // stripe | stub
+  providerRef      String? // Stripe subscription id
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// Key/value site configuration (site name, theme, commerce, etc.).
+model Setting {
+  key   String @id
+  value String // JSON-encoded
+}
+
+// Uploaded media (local store by default; url is public path or remote).
+model Media {
+  id        String   @id @default(cuid())
+  url       String
+  filename  String
+  mime      String
+  size      Int
+  width     Int?
+  height    Int?
+  alt       String?
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  status        String      @default("pending") // pending | paid | fulfilled | refunded | failed
+  email         String?
+  totalCents    Int         @default(0)
+  currency      String      @default("USD")
+  provider      String      @default("stripe") // stripe | stub
+  providerRef   String? // Stripe Checkout Session / PaymentIntent id
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lines         OrderLine[]
+}
+
+model OrderLine {
+  id           String  @id @default(cuid())
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId      String
+  item         Item    @relation(fields: [itemId], references: [id])
+  itemId       String
+  title        String
+  unitCents    Int
+  quantity     Int     @default(1)
+}

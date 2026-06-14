@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Fallback brand colors; overridden at runtime from site settings. */
+  --brand: 29 78 216;
+  --brand-dark: 23 62 173;
+  --accent: 15 118 110;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html {
+  /* full-bleed bands use 100vw; prevent the resulting horizontal scrollbar */
+  overflow-x: hidden;
+}
+
+body {
+  @apply text-slate-900 antialiased;
+  background: rgb(var(--page-bg, 248 250 252));
+  font-family: var(--font, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+}
+
+[data-theme="dark"] body {
+  @apply text-slate-100;
+}
+
+.prose-body p {
+  @apply mb-4 leading-relaxed text-slate-700;
+}
+[data-theme="dark"] .prose-body p {
+  @apply text-slate-300;
+}
+.prose-body h2 {
+  @apply mt-8 mb-3 text-xl font-semibold;
+}
+.prose-body a {
+  @apply text-brand underline;
+}
+
+/* WYSIWYG editable area placeholder */
+.rich-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+}
+

@@ -1,0 +1,51 @@
+# Mosaic — full stack: Next.js app + PostgreSQL.
+#   docker compose up --build
+# App on http://localhost:3000
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mosaic
+      POSTGRES_PASSWORD: mosaic
+      POSTGRES_DB: mosaic
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mosaic"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        DATABASE_PROVIDER: postgresql
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: "postgresql://mosaic:mosaic@db:5432/mosaic?schema=public"
+      APP_URL: "http://localhost:3000"
+      SESSION_SECRET: "change-me-to-a-long-random-string"
+      # Seed owner (first run only)
+      SEED_OWNER_EMAIL: "owner@example.com"
+      SEED_OWNER_PASSWORD: "changeme123"
+      # Optional Stripe / SMTP — leave blank for stub modes.
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      SMTP_HOST: ""
+      EMAIL_FROM: "Mosaic <no-reply@example.com>"
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist uploaded media across restarts.
+      - uploads:/app/public/uploads
+
+volumes:
+  db_data:
+  uploads:
