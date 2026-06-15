@@ -218,6 +218,45 @@ async function main() {
     },
   });
 
+  // ----- Sample shop: hosted (checkout) + external (affiliate) products -----
+  const shop = await prisma.collection.create({
+    data: { slug: "shop", title: "Shop", description: "Support Mosaic Learn.", coverImage: cover("Shop", "#0f766e") },
+  });
+  let shopPos = 0;
+  const addShopItem = (id: string) => prisma.collectionItem.create({ data: { collectionId: shop.id, itemId: id, position: shopPos++ } });
+
+  const mug = await prisma.item.create({
+    data: {
+      slug: "mosaic-learn-mug", type: "product", source: "hosted",
+      title: "Mosaic Learn Mug", summary: "Start your morning with a lesson.",
+      coverImage: cover("Mug · $15", "#1e3a8a"), status: "published", publishedAt: new Date(now - 5 * 36e5),
+      productMeta: { create: { priceCents: 1500, currency: "USD", kind: "physical", inventory: 50 } },
+    },
+  });
+  const guide = await prisma.item.create({
+    data: {
+      slug: "civics-study-guide", type: "product", source: "hosted",
+      title: "Civics Study Guide (PDF)", summary: "A printable companion to the Foundations of Civics series.",
+      coverImage: cover("Study Guide · $9", "#7c3aed"), status: "published", publishedAt: new Date(now - 6 * 36e5),
+      productMeta: { create: { priceCents: 900, currency: "USD", kind: "digital", fileUrl: "/downloads/civics-guide.pdf" } },
+    },
+  });
+  // External / affiliate products (buyUrl can be an affiliate link; or set an Amazon tag in Settings)
+  const extProduct = async (slug: string, title: string, summary: string, bg: string, buyUrl: string, priceCents: number) => {
+    const it = await prisma.item.create({
+      data: {
+        slug, type: "product", source: "external", title, summary,
+        coverImage: cover(title, bg), status: "published", publishedAt: new Date(now - 7 * 36e5),
+        external: { create: { url: buyUrl, sourceName: "Amazon", sourceDomain: "amazon.com", favicon: "https://www.google.com/s2/favicons?domain=amazon.com&sz=64", embedAllowed: false, adapter: "manual" } },
+        productMeta: { create: { priceCents, currency: "USD", kind: "physical", buyUrl, priceCheckedAt: new Date() } },
+      },
+    });
+    return it;
+  };
+  const atlas = await extProduct("recommended-world-atlas", "Recommended: World Atlas", "A great companion for History in Five.", "#b45309", "https://www.amazon.com/dp/0241629330", 3499);
+  const notebook = await extProduct("recommended-pocket-notebook", "Recommended: Pocket Notebook", "For taking notes on the go.", "#475569", "https://www.amazon.com/dp/B07CVL9TWY", 1299);
+  for (const it of [mug, guide, atlas, notebook]) await addShopItem(it.id);
+
   // Any item without a topic falls under the default ("General").
   const untagged = await prisma.item.findMany({ where: { tags: { none: {} } }, select: { id: true } });
   if (untagged.length > 0) {

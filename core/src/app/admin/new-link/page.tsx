@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import FetchImageButton from "../../../components/FetchImageButton";
 
 type Tag = { id: string; name: string };
 
@@ -44,7 +45,7 @@ export default function NewLink() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "link", source: "hosted",
-          title, url, summary: commentary, coverImage,
+          title, url, commentary, coverImage,
           publishedAt: date ? new Date(date).toISOString() : null,
           tagIds,
         }),
@@ -91,6 +92,7 @@ export default function NewLink() {
             {uploading ? "…" : "Upload"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
           </label>
+          <FetchImageButton url={url} onImage={setCoverImage} currentImage={coverImage} />
         </div>
         {coverImage && (
           // eslint-disable-next-line @next/next/no-img-element

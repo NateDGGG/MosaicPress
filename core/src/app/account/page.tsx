@@ -13,10 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage() {
   const user = getSessionUser();
   if (!user) redirect("/login");
+  const learner = { kind: "user" as const, userId: user.id };
   const [sub, saved, completed] = await Promise.all([
     getActiveSubscription(user.id),
-    listSaved(user.id),
-    listCompleted(user.id),
+    listSaved(learner),
+    listCompleted(learner),
   ]);
 
   return (

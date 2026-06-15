@@ -20,6 +20,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/admin/media" className="text-sm text-slate-600 hover:text-brand">Media</Link>
         <Link href="/admin/health" className="text-sm text-slate-600 hover:text-brand">Health</Link>
         <Link href="/admin/orders" className="text-sm text-slate-600 hover:text-brand">Orders</Link>
+        <Link href="/admin/messages" className="text-sm text-slate-600 hover:text-brand">Messages</Link>
+        <Link href="/admin/subscribers" className="text-sm text-slate-600 hover:text-brand">Subscribers</Link>
+        <Link href="/admin/bookings" className="text-sm text-slate-600 hover:text-brand">Bookings</Link>
+        <Link href="/admin/testimonials" className="text-sm text-slate-600 hover:text-brand">Testimonials</Link>
         {isOwner && (
           <>
             <Link href="/admin/plans" className="text-sm text-slate-600 hover:text-brand">Plans</Link>

@@ -51,10 +51,14 @@ export default function ItemCard({
   item,
   showStock = false,
   lowStockThreshold = 5,
+  commentaryMode = "hidden",
+  commentaryChars = 160,
 }: {
   item: FullItem;
   showStock?: boolean;
   lowStockThreshold?: number;
+  commentaryMode?: "hidden" | "excerpt" | "full";
+  commentaryChars?: number;
 }) {
   const type = item.type as ItemType;
   const source = item.source as Source;
@@ -63,6 +67,16 @@ export default function ItemCard({
   const price = priceFormat(item.productMeta?.priceCents, item.productMeta?.currency);
   const duration = durationFormat(item.videoMeta?.duration);
   const readTime = readTimeLabel(item);
+  // Card blurb: prefer the short summary; fall back to a plain-text commentary excerpt.
+  const commentaryPlain = item.commentary
+    ? item.commentary.replace(/<[^>]+>/g, " ").replace(/[#>*_`\[\]()!]/g, " ").replace(/\s+/g, " ").trim()
+    : "";
+  const blurb = item.summary || commentaryPlain;
+  // Extra editorial note on cards (home page): append only when a summary already
+  // occupies the blurb line, so we don't duplicate commentary shown as the blurb.
+  const showNote = commentaryMode !== "hidden" && !!item.commentary && !!item.summary;
+  const noteExcerpt =
+    commentaryPlain.length > commentaryChars ? commentaryPlain.slice(0, commentaryChars).trimEnd() + "…" : commentaryPlain;
   const level = item.level ? LEVEL_LABELS[item.level] || item.level : null;
 
   // Low-stock / sold-out badge — only for hosted products when commerce is on.
@@ -80,8 +94,8 @@ export default function ItemCard({
   const isExternalDirect = href.startsWith("http");
 
   const Inner = (
-    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="relative aspect-video bg-slate-100">
+    <article className="ml-card group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+      <div className="relative bg-slate-100" style={{ aspectRatio: "var(--card-aspect, 16 / 9)" }}>
         {item.coverImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.coverImage} alt="" className="h-full w-full object-cover" />
@@ -118,7 +132,13 @@ export default function ItemCard({
         <h3 className="mb-1 line-clamp-2 font-semibold leading-snug text-slate-900 group-hover:text-brand">
           {item.title}
         </h3>
-        {item.summary && <p className="line-clamp-2 text-sm text-slate-600">{item.summary}</p>}
+        {blurb && <p className="line-clamp-2 text-sm text-slate-600">{blurb}</p>}
+        {showNote && (
+          <p className={`mt-1 text-sm italic text-slate-500 ${commentaryMode === "full" ? "line-clamp-5" : "line-clamp-2"}`}>
+            <span className="font-medium not-italic text-brand">Note: </span>
+            {commentaryMode === "full" ? commentaryPlain : noteExcerpt}
+          </p>
+        )}
         <div className="mt-3 flex items-center justify-between pt-2 text-sm">
           <span className="font-medium text-brand">
             {action}{isExternalDirect ? " ↗" : " →"}

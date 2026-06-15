@@ -25,6 +25,11 @@ body {
   font-family: var(--font, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
 }
 
+/* Headings use the heading font (falls back to body font). */
+h1, h2, h3, h4, .prose-body h2, .prose-body h3 {
+  font-family: var(--font-heading, var(--font));
+}
+
 [data-theme="dark"] body {
   @apply text-slate-100;
 }
@@ -100,3 +105,16 @@ summary::-webkit-details-marker { display: none; }
   }
 }
 
+/* ---- Corner-radius personality (data-radius on <html>) ---- */
+[data-radius="sharp"] .rounded-lg,
+[data-radius="sharp"] .rounded-xl,
+[data-radius="sharp"] .rounded-2xl { border-radius: 0.25rem; }
+[data-radius="soft"] .rounded-lg { border-radius: 0.9rem; }
+[data-radius="soft"] .rounded-xl { border-radius: 1.25rem; }
+[data-radius="soft"] .rounded-2xl { border-radius: 1.75rem; }
+
+/* ---- Card elevation (data-card-shadow on <html>) ---- */
+[data-card-shadow="flat"] .ml-card { box-shadow: none; }
+[data-card-shadow="flat"] .ml-card:hover { box-shadow: none; }
+[data-card-shadow="raised"] .ml-card { box-shadow: 0 10px 25px -8px rgba(2, 6, 23, 0.18); }
+[data-card-shadow="raised"] .ml-card:hover { box-shadow: 0 16px 32px -8px rgba(2, 6, 23, 0.26); }

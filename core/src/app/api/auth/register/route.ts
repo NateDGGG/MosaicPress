@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db";
 import { hashPassword, setSessionCookie } from "../../../../lib/auth";
+import { currentAnonId, clearAnonCookie } from "../../../../lib/learner";
+import { mergeAnonProgress } from "../../../../lib/progress";
 
 export const runtime = "nodejs";
 
@@ -29,6 +31,11 @@ export async function POST(req: Request) {
       },
     });
     setSessionCookie({ id: user.id, email: user.email, name: user.name, role: "member" });
+    const anonId = currentAnonId();
+    if (anonId) {
+      try { await mergeAnonProgress(user.id, anonId); } catch {}
+      clearAnonCookie();
+    }
     return NextResponse.json({ user: { id: user.id, email: user.email, role: "member" } }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "That email is already registered." }, { status: 409 });

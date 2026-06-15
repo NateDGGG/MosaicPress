@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCollection } from "../../../lib/collections";
-import { getSessionUser } from "../../../lib/auth";
+import { getLearner } from "../../../lib/learner";
 import { completedItemIds } from "../../../lib/progress";
 import { TYPE_LABELS, type ItemType } from "../../../lib/types";
 
@@ -18,8 +18,8 @@ export default async function CollectionPage({ params }: { params: { slug: strin
   if (!collection) notFound();
 
   const items = collection.items.map((ci) => ci.item).filter((it) => it.status === "published");
-  const user = getSessionUser();
-  const done = user ? await completedItemIds(user.id) : new Set<string>();
+  const learner = await getLearner();
+  const done = learner ? await completedItemIds(learner) : new Set<string>();
   const completedCount = items.filter((it) => done.has(it.id)).length;
   const firstIncomplete = items.find((it) => !done.has(it.id));
   const ctaItem = firstIncomplete || items[0];
@@ -34,7 +34,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
       {collection.description && <p className="mb-4 max-w-2xl text-slate-600">{collection.description}</p>}
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <span className="text-sm text-slate-400">
-          {user && completedCount > 0 ? `${completedCount} of ${items.length} complete` : `${items.length} ${items.length === 1 ? "lesson" : "lessons"}`}
+          {completedCount > 0 ? `${completedCount} of ${items.length} complete` : `${items.length} ${items.length === 1 ? "lesson" : "lessons"}`}
         </span>
         {ctaItem && (
           <Link href={`/i/${ctaItem.slug}`} className="rounded-lg bg-brand px-5 py-2 font-semibold text-white hover:bg-brand-dark">
@@ -42,7 +42,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
           </Link>
         )}
       </div>
-      {user && completedCount > 0 && (
+      {completedCount > 0 && (
         <div className="mb-8 h-2 w-full max-w-md overflow-hidden rounded-full bg-slate-200">
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>

@@ -39,12 +39,17 @@ model Item {
 
   // Hosted article/rich body — block JSON stored as text. Null for external.
   body String?
+  // Site owner’s own note/take on this item (markdown). Applies to every type.
+  commentary String?
+  attributes String?  // JSON map of owner-defined custom field values
+  featuredNote Boolean @default(false) // spotlight this commentary in the Editor’s notes band
 
   // 1:1 type-specific + source-specific extensions
   external    ExternalSource?
   videoMeta   VideoMeta?
   productMeta ProductMeta?
   linkMeta    LinkMeta?
+  bookMeta    BookMeta?
 
   // Collection membership (ordered, mixed types & sources)
   collections CollectionItem[]
@@ -54,6 +59,8 @@ model Item {
   presenter   Presenter? @relation(fields: [presenterId], references: [id])
   presenterId String?
   tags        ItemTag[]
+  level     String?  // difficulty: beginner | intermediate | advanced
+  progress  ItemProgress[]
 }
 
 // A presenter / host whose content can be browsed together.
@@ -74,6 +81,9 @@ model Tag {
   slug      String    @unique
   name      String
   isDefault Boolean   @default(false) // content with no topic falls under this one
+  showOnHome Boolean  @default(true)  // show this topic on the home page
+  intro     String?   // optional topic intro shown atop the topic page
+  sortMode  String    @default("newest") // newest | oldest | manual
   items     ItemTag[]
 }
 
@@ -83,6 +93,7 @@ model ItemTag {
   tagId  String
   item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   itemId String
+  position Int   @default(0) // manual order within the topic (when sortMode=manual)
 
   @@unique([tagId, itemId])
 }
@@ -168,6 +179,7 @@ model User {
   passwordHash  String? // scrypt hash; null = not set yet
   createdAt     DateTime       @default(now())
   subscriptions Subscription[]
+  progress      ItemProgress[]
 }
 
 // A membership plan customers can subscribe to.
@@ -222,6 +234,14 @@ model Order {
   id            String      @id @default(cuid())
   status        String      @default("pending") // pending | paid | fulfilled | refunded | failed
   email         String?
+  // Shipping address (collected at checkout when the cart has physical goods).
+  shipName      String?
+  shipLine1     String?
+  shipLine2     String?
+  shipCity      String?
+  shipRegion    String?
+  shipPostal    String?
+  shipCountry   String?
   totalCents    Int         @default(0)
   currency      String      @default("USD")
   provider      String      @default("stripe") // stripe | stub
@@ -240,4 +260,80 @@ model OrderLine {
   title        String
   unitCents    Int
   quantity     Int     @default(1)
+}
+
+// Present when type = book. Rich info imported from a book link.
+model BookMeta {
+  id            String   @id @default(cuid())
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId        String   @unique
+  isbn          String?
+  authors       String?  // comma-separated author names
+  description   String?  // the "about" content
+  pageCount     Int?
+  publishedYear Int?
+  publisher     String?
+  buyUrl        String?  // outbound link to view/buy the book
+}
+
+// Per-user learning state for an item: bookmarked ("saved") and/or completed.
+model ItemProgress {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  saved     Boolean  @default(false)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, itemId])
+}
+
+// Contact / lead-capture form submissions.
+model FormSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  source    String?  // page path or form id the message came from
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Newsletter / email-list subscribers.
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  source    String?  // where they signed up (page path / form id)
+  status    String   @default("subscribed") // subscribed | unsubscribed
+  createdAt DateTime @default(now())
+}
+
+
+// Customer/client testimonials (social proof).
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?  // e.g. "CEO, Acme" or "Coaching client"
+  quote     String
+  avatar    String?
+  rating    Int?     // 1–5 stars (optional)
+  featured  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// Booking / appointment requests (when not using an external scheduler embed).
+model BookingRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  service     String?
+  preferredAt String?  // free-text preferred date/time
+  message     String?
+  status      String   @default("new") // new | confirmed | declined
+  createdAt   DateTime @default(now())
 }

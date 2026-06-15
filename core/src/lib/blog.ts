@@ -25,3 +25,8 @@ export function renderBlogHtml(body?: string | null): string {
   const html = format === "html" ? content : renderMarkdown(content);
   return sanitizeArticleHtml(html);
 }
+
+// Render owner commentary (markdown) to safe HTML — shared across all asset types.
+export function renderCommentaryHtml(md?: string | null): string {
+  return md ? sanitizeArticleHtml(renderMarkdown(md)) : "";
+}

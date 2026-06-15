@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import FetchImageButton from "../../../components/FetchImageButton";
 
 export default function ImportBook() {
   const router = useRouter();
@@ -94,6 +95,21 @@ export default function ImportBook() {
           {b?.description && (
             <p className="mt-4 line-clamp-5 text-sm text-slate-600">{b.description}</p>
           )}
+
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-medium text-slate-500">Cover image</label>
+            <div className="flex items-center gap-2">
+              <input value={draft.coverImage || ""} onChange={(e) => setDraft({ ...draft, coverImage: e.target.value })}
+                placeholder="/uploads/… or https://…"
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none" />
+              <FetchImageButton
+                url={b?.buyUrl || url}
+                currentImage={draft.coverImage}
+                onImage={(src) => setDraft({ ...draft, coverImage: src })}
+              />
+            </div>
+          </div>
+
           <div className="mt-4 flex gap-2">
             <button onClick={save} disabled={saving}
               className="rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50">

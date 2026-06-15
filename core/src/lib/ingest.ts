@@ -258,3 +258,49 @@ export async function ingestUrl(raw: string): Promise<NormalizedDraft> {
   if (viaOEmbed) return viaOEmbed;
   return tryHtml(url);
 }
+
+// ---------------------------------------------------------------------------
+// Lightweight metadata preview: fetch a URL and pull its og:image / title /
+// description, resolving relative image URLs. Used by authoring forms to
+// auto-fill a preview image without a full ingest. SSRF-safe via assertSafeUrl.
+export interface LinkPreview {
+  image?: string;
+  title?: string;
+  description?: string;
+}
+
+export async function fetchLinkPreview(raw: string): Promise<LinkPreview> {
+  const url = await assertSafeUrl(raw);
+  const res = await safeFetch(url);
+  const ctype = res.headers.get("content-type") || "";
+  // If the URL itself is an image, use it directly.
+  if (ctype.startsWith("image/")) return { image: url.toString() };
+  if (!ctype.includes("html")) return {};
+  const html = await res.text();
+  const $ = cheerio.load(html);
+  const meta = (sel: string) => $(sel).attr("content")?.trim() || undefined;
+
+  let image =
+    meta('meta[property="og:image"]') ||
+    meta('meta[property="og:image:url"]') ||
+    meta('meta[name="twitter:image"]') ||
+    meta('meta[name="twitter:image:src"]') ||
+    $('link[rel="image_src"]').attr("href") ||
+    undefined;
+  // Resolve protocol-relative and relative image URLs against the page URL.
+  if (image) {
+    try { image = new URL(image, url).toString(); } catch { /* leave as-is */ }
+  }
+  const title =
+    meta('meta[property="og:title"]') ||
+    meta('meta[name="twitter:title"]') ||
+    $("title").first().text().trim() ||
+    undefined;
+  const description =
+    meta('meta[property="og:description"]') ||
+    meta('meta[name="twitter:description"]') ||
+    meta('meta[name="description"]') ||
+    undefined;
+  return { image, title, description };
+}
+

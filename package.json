@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": ["core", "projects/*"],
   "scripts": {
-    "test": "npm --workspace @mosaic/core run test"
+    "test": "npm --workspace @mosaic/core run test",
+    "create-project": "node core/scripts/create-project.mjs"
   }
 }

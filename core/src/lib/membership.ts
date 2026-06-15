@@ -106,3 +106,9 @@ export async function cancelSubscription(userId: string) {
     data: { status: "canceled" },
   });
 }
+
+// True when the site offers at least one membership plan (used to hide
+// membership UI when none exist).
+export async function plansExist(): Promise<boolean> {
+  return (await prisma.plan.count()) > 0;
+}

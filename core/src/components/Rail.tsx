@@ -14,10 +14,12 @@ export default function Rail({
   title,
   href,
   items,
+  commentaryMode = "hidden",
 }: {
   title: string;
   href?: string;
   items: FullItem[];
+  commentaryMode?: "hidden" | "excerpt" | "full";
 }) {
   if (items.length === 0) return null;
   return (
@@ -33,7 +35,7 @@ export default function Rail({
       <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]">
         {items.map((item) => (
           <div key={item.id} className="w-72 shrink-0">
-            <ItemCard item={item} />
+            <ItemCard item={item} commentaryMode={commentaryMode} />
           </div>
         ))}
       </div>

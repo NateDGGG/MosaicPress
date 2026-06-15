@@ -9,8 +9,12 @@ import ItemCard from "../../../components/ItemCard";
 import ItemActions from "../../../components/ItemActions";
 import { relatedItems, nextItem } from "../../../lib/taxonomy";
 import { getProgress } from "../../../lib/progress";
+import { getLearner } from "../../../lib/learner";
 import BlockRenderer from "../../../components/BlockRenderer";
 import BlogRenderer from "../../../components/BlogRenderer";
+import { renderCommentaryHtml } from "../../../lib/blog";
+import ItemDetails from "../../../components/ItemDetails";
+import { buildItemJsonLd } from "../../../lib/seo";
 import { getSessionUser, isStaff } from "../../../lib/auth";
 import { isActiveMember } from "../../../lib/membership";
 
@@ -93,15 +97,27 @@ export default async function ItemPage({ params }: { params: { slug: string } })
   const action = actionLabel(type, source, ext?.sourceName);
   const price = priceFormat(item.productMeta?.priceCents, item.productMeta?.currency);
 
+  const learner = await getLearner();
   const [upNext, relatedAll, progress] = await Promise.all([
     nextItem(item),
     relatedItems(item, 6),
-    viewer ? getProgress(viewer.id, item.id) : Promise.resolve(null),
+    learner ? getProgress(learner, item.id) : Promise.resolve(null),
   ]);
   const related = relatedAll.filter((r) => r.id !== upNext?.item.id).slice(0, 6);
 
+  // Show the progress controls when tracking is on. In "login" mode that means
+  // only for signed-in viewers; in "anonymous" mode for everyone (the device
+  // cookie is minted on first action).
+  const showProgress =
+    !locked &&
+    (settings.progressTracking === "anonymous" ||
+      (settings.progressTracking === "login" && !!viewer));
+
+  const jsonLd = buildItemJsonLd(item as any, settings.customFields, { siteName: settings.siteName, url: `${process.env.APP_URL || ""}/i/${item.slug}` });
+
   return (
     <article className="mx-auto max-w-3xl">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
         <Link href="/" className="text-slate-400 hover:text-brand">← Back</Link>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">{TYPE_LABELS[type]}</span>
@@ -136,8 +152,13 @@ export default async function ItemPage({ params }: { params: { slug: string } })
         )}
       </div>
 
-      {viewer && (
-        <ItemActions itemId={item.id} initialSaved={!!progress?.saved} initialCompleted={!!progress?.completed} />
+      {showProgress && (
+        <ItemActions
+          itemId={item.id}
+          initialSaved={!!progress?.saved}
+          initialCompleted={!!progress?.completed}
+          nextHref={upNext ? `/i/${upNext.item.slug}` : undefined}
+        />
       )}
 
       {/* ---------- VIDEO ---------- */}
@@ -254,6 +275,17 @@ export default async function ItemPage({ params }: { params: { slug: string } })
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.coverImage} alt="" className="mb-6 aspect-video w-full rounded-xl object-cover" />
       )}
+
+      {/* ---------- FROM THE EDITOR (owner commentary, all types) ---------- */}
+      {item.commentary && (
+        <aside className="my-6 rounded-xl border-l-4 border-brand bg-brand/5 p-4">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand">From the editor</div>
+          <div className="prose-body" dangerouslySetInnerHTML={{ __html: renderCommentaryHtml(item.commentary) }} />
+        </aside>
+      )}
+
+      {/* ---------- DETAILS (owner-defined custom fields) ---------- */}
+      <ItemDetails defs={settings.customFields} attributes={item.attributes} itemType={item.type} />
 
       {/* ---------- BODY ---------- */}
       {type === "blog" ? (

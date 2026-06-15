@@ -10,6 +10,7 @@ export default function NewBlog() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [commentary, setCommentary] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [format, setFormat] = useState<"markdown" | "html">("markdown");
   const [content, setContent] = useState("");
@@ -42,7 +43,7 @@ export default function NewBlog() {
       const res = await fetch("/api/items", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "blog", source: "hosted", title, summary, coverImage,
+          type: "blog", source: "hosted", title, summary, commentary, coverImage,
           body: JSON.stringify({ format, content }),
           tagIds,
         }),
@@ -70,6 +71,9 @@ export default function NewBlog() {
 
         <label className={label}>Short summary (optional)</label>
         <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className={`${field} mb-3`} />
+
+        <label className={label}>Your commentary (optional — markdown; shown as &ldquo;From the editor&rdquo;)</label>
+        <textarea value={commentary} onChange={(e) => setCommentary(e.target.value)} rows={3} className={`${field} mb-3 font-mono text-sm`} placeholder="Your take on this piece…" />
 
         <label className={label}>Cover image</label>
         <div className="mb-3 flex items-center gap-2">

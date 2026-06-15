@@ -40,6 +40,8 @@ export function scoreItem(item: any, terms: string[]): number {
   const author = (item.author || "").toLowerCase();
   const source = (item.external?.sourceName || "").toLowerCase();
   const body = bodyText(item.body).toLowerCase();
+  const commentary = (item.commentary || "").toLowerCase();
+  const attrs = (item.attributes || "").toLowerCase();
 
   let score = 0;
   for (const t of terms) {
@@ -50,6 +52,8 @@ export function scoreItem(item: any, terms: string[]): number {
     if (author.includes(t)) score += 3;
     if (source.includes(t)) score += 2;
     if (body.includes(t)) score += 1;
+    if (commentary.includes(t)) score += 1;
+    if (attrs.includes(t)) score += 1;
   }
   return score;
 }

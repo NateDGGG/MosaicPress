@@ -33,6 +33,48 @@ globals from core), then Prisma generate/push, then the project seed.
 Default logins (from the seed): `owner@example.com / changeme123`,
 `editor@example.com / editor123`.
 
+## Rebuild from scratch
+
+The source tree is the source of truth, but `node_modules/`, the generated Prisma
+client, and each project's SQLite database (`projects/*/data/dev.db`) are **not**
+committed/synced — recreate them on a fresh machine or after a clean checkout:
+
+```bash
+npm install                      # repo root — installs + hoists all workspaces
+cd projects/mosaic-learn         # or projects/base
+npm run setup                    # sync + prisma generate + db push + seed
+npm run dev                      # http://localhost:3000
+```
+
+That's the whole bootstrap. `npm run setup` is idempotent, so it's also safe to
+re-run after pulling changes. If you only changed core code (not the schema),
+`npm run sync` alone is enough; run `npm run db:push` too if the schema changed.
+
+To wipe a project's data and reseed from scratch:
+
+```bash
+rm -f projects/mosaic-learn/data/dev.db && npm --workspace @mosaic/project-mosaic-learn run setup
+```
+
+## Commentary (owner notes)
+
+Every asset (article, blog, video, product, link, book) has an optional
+**commentary** field — the site owner's own take, written in markdown. It's
+distinct from `summary` (a neutral one-line description) and `body` (full
+long-form, articles/blog only).
+
+- **Author it** in the item editor ("Your commentary") or in the create flows
+  for links, products, and blog posts.
+- **Item page:** always shown as a themed "From the editor" callout above the body.
+- **Home cards:** controlled by Settings → Content → *Show your commentary on
+  home-page cards* — `Hidden` (default), `Excerpt` (short note + length), or
+  `Full`. Each home section can override this in the Home-page builder
+  (Default / Hidden / Excerpt / Full).
+- **Editor's notes band:** flag an item with "Feature this commentary" and add
+  the *Editor's notes* section (in the default layout) to spotlight your picks
+  with fully-rendered commentary.
+- Commentary is also indexed by search (low weight).
+
 ## How sharing works
 
 A project's `src/app` is **generated** from core by `npm run sync`

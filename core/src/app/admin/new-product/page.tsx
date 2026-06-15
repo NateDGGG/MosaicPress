@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import FetchImageButton from "../../../components/FetchImageButton";
 
 export default function NewProduct() {
   const router = useRouter();
   const [source, setSource] = useState<"hosted" | "external">("hosted");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [commentary, setCommentary] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -31,7 +33,7 @@ export default function NewProduct() {
     e.preventDefault();
     setSaving(true); setError(null);
     const payload: any = {
-      type: "product", source, title, summary, coverImage,
+      type: "product", source, title, summary, commentary, coverImage,
       priceCents: price ? Math.round(parseFloat(price) * 100) : null,
       currency,
     };
@@ -79,6 +81,9 @@ export default function NewProduct() {
         <label className={label}>Short description</label>
         <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className={`${field} mb-3`} />
 
+        <label className={label}>Your commentary (optional — markdown; shown as &ldquo;From the editor&rdquo;)</label>
+        <textarea value={commentary} onChange={(e) => setCommentary(e.target.value)} rows={3} className={`${field} mb-3 font-mono text-sm`} placeholder="Why you recommend it…" />
+
         <label className={label}>Cover image</label>
         <div className="mb-3 flex items-center gap-2">
           <input value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="/uploads/… or https://…" className={field} />
@@ -86,7 +91,12 @@ export default function NewProduct() {
             {uploading ? "…" : "Upload"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
           </label>
+          {source === "external" && <FetchImageButton url={buyUrl} onImage={setCoverImage} currentImage={coverImage} />}
         </div>
+        {coverImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverImage} alt="" className="mb-3 aspect-video w-full rounded-lg object-cover" />
+        )}
 
         <div className="mb-3 grid grid-cols-3 gap-3">
           <div className="col-span-2">

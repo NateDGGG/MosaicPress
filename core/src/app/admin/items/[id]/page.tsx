@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BlockEditor from "../../../../components/BlockEditor";
 import BlogBodyEditor from "../../../../components/BlogBodyEditor";
+import { applicableFields, parseAttributes, type FieldDef } from "../../../../lib/fields";
+import FetchImageButton from "../../../../components/FetchImageButton";
 
 export default function EditItem({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function EditItem({ params }: { params: { id: string } }) {
   const [presenters, setPresenters] = useState<any[]>([]);
   const [allTags, setAllTags] = useState<any[]>([]);
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [fieldDefs, setFieldDefs] = useState<FieldDef[]>([]);
+  const [attrs, setAttrs] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetch(`/api/items/${params.id}`)
@@ -25,11 +29,13 @@ export default function EditItem({ params }: { params: { id: string } }) {
         if (d.item) {
           setItem(d.item);
           setTagIds((d.item.tags || []).map((t: any) => t.tagId));
+          setAttrs(parseAttributes(d.item.attributes));
         } else setError(d.error || "Not found.");
       })
       .catch(() => setError("Failed to load."));
     fetch("/api/presenters").then((r) => r.json()).then((d) => setPresenters(d.presenters || []));
     fetch("/api/tags").then((r) => r.json()).then((d) => setAllTags(d.tags || []));
+    fetch("/api/settings").then((r) => r.json()).then((d) => setFieldDefs(d.settings?.customFields || [])).catch(() => {});
   }, [params.id]);
 
   function toggleTag(id: string) {
@@ -42,6 +48,9 @@ export default function EditItem({ params }: { params: { id: string } }) {
   function setPM(key: string, value: any) {
     setItem((prev: any) => ({ ...prev, productMeta: { ...(prev.productMeta || {}), [key]: value } }));
   }
+  function setAttr(key: string, value: any) {
+    setAttrs((prev) => ({ ...prev, [key]: value }));
+  }
   function setLM(key: string, value: any) {
     setItem((prev: any) => ({ ...prev, linkMeta: { ...(prev.linkMeta || {}), [key]: value } }));
   }
@@ -52,6 +61,9 @@ export default function EditItem({ params }: { params: { id: string } }) {
     const payload: any = {
       title: item.title,
       summary: item.summary,
+      commentary: item.commentary,
+      attributes: JSON.stringify(attrs),
+      featuredNote: item.featuredNote,
       author: item.author,
       coverImage: item.coverImage,
       featured: item.featured,
@@ -131,6 +143,19 @@ export default function EditItem({ params }: { params: { id: string } }) {
           className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none"
         />
 
+        <label className="mb-1 block text-xs font-medium text-slate-500">Your commentary (markdown — your take, shown as &ldquo;From the editor&rdquo;)</label>
+        <textarea
+          value={item.commentary || ""}
+          onChange={(e) => set("commentary", e.target.value)}
+          rows={4}
+          placeholder="Why this matters, what to notice, your perspective…"
+          className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-brand focus:outline-none"
+        />
+        <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={!!item.featuredNote} onChange={(e) => set("featuredNote", e.target.checked)} />
+          Feature this commentary in the home &ldquo;Editor&rsquo;s notes&rdquo; section
+        </label>
+
         <label className="mb-1 block text-xs font-medium text-slate-500">Author (fallback if no presenter)</label>
         <input
           value={item.author || ""}
@@ -198,7 +223,16 @@ export default function EditItem({ params }: { params: { id: string } }) {
                 }}
               />
             </label>
+            <FetchImageButton
+              url={item.linkMeta?.url || item.productMeta?.buyUrl || item.bookMeta?.buyUrl || item.external?.url}
+              onImage={(src) => set("coverImage", src)}
+              currentImage={item.coverImage}
+            />
           </div>
+          {item.coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.coverImage} alt="" className="mt-2 aspect-video w-full rounded-lg object-cover" />
+          )}
         </div>
 
         {item.type === "article" && item.source === "hosted" && (
@@ -248,6 +282,39 @@ export default function EditItem({ params }: { params: { id: string } }) {
             </select>
           </label>
         </div>
+
+        {applicableFields(fieldDefs, item.type).length > 0 && (
+          <div className="mb-4 rounded-lg border border-slate-200 p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Details</div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {applicableFields(fieldDefs, item.type).map((f) => (
+                <div key={f.id}>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">{f.label}{f.unit ? ` (${f.unit})` : ""}</label>
+                  {f.type === "textarea" ? (
+                    <textarea value={attrs[f.key] ?? ""} onChange={(e) => setAttr(f.key, e.target.value)} rows={3}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none" />
+                  ) : f.type === "select" ? (
+                    <select value={attrs[f.key] ?? ""} onChange={(e) => setAttr(f.key, e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none">
+                      <option value="">—</option>
+                      {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : f.type === "boolean" ? (
+                    <label className="flex items-center gap-2 text-sm text-slate-600">
+                      <input type="checkbox" checked={!!attrs[f.key]} onChange={(e) => setAttr(f.key, e.target.checked)} /> Yes
+                    </label>
+                  ) : (
+                    <input
+                      type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "url" ? "url" : "text"}
+                      value={attrs[f.key] ?? ""}
+                      onChange={(e) => setAttr(f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {item.source === "external" && item.external?.url && (
           <p className="mb-3 truncate text-xs text-slate-400">Source: {item.external.url}</p>

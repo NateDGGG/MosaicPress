@@ -39,6 +39,10 @@ model Item {
 
   // Hosted article/rich body — block JSON stored as text. Null for external.
   body String?
+  // Site owner’s own note/take on this item (markdown). Applies to every type.
+  commentary String?
+  attributes String?  // JSON map of owner-defined custom field values
+  featuredNote Boolean @default(false) // spotlight this commentary in the Editor’s notes band
 
   // 1:1 type-specific + source-specific extensions
   external    ExternalSource?
@@ -275,8 +279,12 @@ model BookMeta {
 // Per-user learning state for an item: bookmarked ("saved") and/or completed.
 model ItemProgress {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  // Progress belongs to EITHER a signed-in user OR an anonymous device cookie.
+  // Exactly one of userId / anonId is set. NULLs are distinct in SQLite/Postgres
+  // unique indexes, so the two compound uniques below don't collide.
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  anonId    String?
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   itemId    String
   saved     Boolean  @default(false)
@@ -284,4 +292,53 @@ model ItemProgress {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, itemId])
+  @@unique([anonId, itemId])
+}
+
+// Contact / lead-capture form submissions.
+model FormSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  source    String?  // page path or form id the message came from
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Newsletter / email-list subscribers.
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  source    String?  // where they signed up (page path / form id)
+  status    String   @default("subscribed") // subscribed | unsubscribed
+  createdAt DateTime @default(now())
+}
+
+
+// Customer/client testimonials (social proof).
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?  // e.g. "CEO, Acme" or "Coaching client"
+  quote     String
+  avatar    String?
+  rating    Int?     // 1–5 stars (optional)
+  featured  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// Booking / appointment requests (when not using an external scheduler embed).
+model BookingRequest {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  service     String?
+  preferredAt String?  // free-text preferred date/time
+  message     String?
+  status      String   @default("new") // new | confirmed | declined
+  createdAt   DateTime @default(now())
 }

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { listCollections } from "../../lib/collections";
-import { getSessionUser } from "../../lib/auth";
+import { getLearner } from "../../lib/learner";
 import { completedItemIds } from "../../lib/progress";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Learning paths" };
 
 export default async function CollectionsIndex() {
-  const user = getSessionUser();
-  const done = user ? await completedItemIds(user.id) : new Set<string>();
+  const learner = await getLearner();
+  const done = learner ? await completedItemIds(learner) : new Set<string>();
   const cols = (await listCollections())
     .map((c) => ({ ...c, published: c.items.filter((i) => i.item.status === "published") }))
     .filter((c) => c.published.length > 0);

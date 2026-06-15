@@ -44,7 +44,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const data: any = {};
-  for (const k of ["title", "summary", "coverImage", "author", "body", "featured", "access", "seoTitle", "seoDesc", "level"]) {
+  for (const k of ["title", "summary", "coverImage", "author", "body", "commentary", "attributes", "featuredNote", "featured", "access", "seoTitle", "seoDesc", "level"]) {
     if (k in body) data[k] = body[k];
   }
   // Presenter: empty string clears the relation.

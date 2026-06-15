@@ -92,6 +92,9 @@ Read this file first — it's the spine of the app. Key models:
     (`sourceName`, `favicon`, `embedHtml`), and health (`syncStatus`, `lastSyncedAt`).
   - `VideoMeta`, `ProductMeta`, `LinkMeta` — type-specific fields.
 - **`Collection` / `CollectionItem`** — ordered groupings that mix any type and source.
+  Used as **learning paths / courses**: `CollectionItem.position` defines lesson order.
+- **`ItemProgress`** — per-learner state (`saved`, `completed`) for one Item. Belongs to
+  **either** a signed-in `User` (`userId`) **or** an anonymous device (`anonId`); see §10d.
 - **`User`** — staff (`owner`/`editor`/`contributor`) **and** customers (`member`), one table.
 - **`Setting`** — a single key/value row holding site config (name, theme, currency).
 - **`Media`** — uploaded files.
@@ -246,6 +249,75 @@ requires the `editor` role, same as publishing. No schema change was needed — 
 
 ---
 
+## 10c. Owner commentary (`Item.commentary`, `lib/blog.ts`)
+
+`Item.commentary` (markdown, nullable) holds the site owner's own take on any
+asset — separate from `summary` (short description) and `body` (long-form).
+
+- **Render:** `renderCommentaryHtml(md)` in `lib/blog.ts` reuses the markdown
+  renderer + `sanitizeArticleHtml`, so commentary is always sanitized.
+- **Item page** (`app/i/[slug]`): a "From the editor" callout for every type.
+- **Cards** (`components/ItemCard.tsx`): `commentaryMode` prop
+  (`hidden` | `excerpt` | `full`) + `commentaryChars`. Excerpts are plain-text
+  (markdown stripped) and line-clamped so rails keep uniform heights. When a
+  card has no `summary`, commentary becomes the blurb; otherwise it appends as a
+  "Note:" line.
+- **Home control:** global `settings.homeCommentary` + `commentaryExcerptChars`;
+  per-section override via `HomeSection.commentary` (passed as
+  `sec.commentary || cm` to each `Rail`).
+- **Editor's notes band:** `HomeSection` kind `editorsNotes` renders published
+  items where `featuredNote && commentary`, with fully-rendered markdown. The
+  `Item.featuredNote` flag is set from the item editor.
+- **Search:** `scoreItem` indexes commentary at low weight (`lib/search.ts`).
+- **Design rationale:** see `COMMENTARY_DISPLAY_DESIGN.md` at the repo root.
+
+## 10d. Lesson progress & resume — the "course player" (`lib/progress.ts`, `lib/learner.ts`)
+
+Collections double as **self-paced courses**: ordered lessons, per-lesson completion, a
+path-level progress bar, a **Resume** button that jumps to the first unfinished lesson, and
+a **"Complete & continue →"** button that marks a lesson done and advances to the next one.
+The sequencing itself is `nextItem()` in `lib/taxonomy.ts` (next published item in the same
+collection by `position`, falling back to topic order).
+
+The key idea is the **`Learner`** — *who progress is recorded for*. It's either a signed-in
+user or an anonymous device, so resume can work **without a formal login**:
+
+- **`lib/learner.ts`** resolves identity from the `settings.progressTracking` mode:
+  - `getLearner()` — read-only (safe in server components): returns the user, else (in
+    `anonymous` mode) the `ml_anon` cookie holder, else `null`. **Never sets a cookie.**
+  - `getOrCreateLearnerForWrite()` — for route handlers/server actions: in `anonymous` mode
+    it **mints and sets** the `ml_anon` cookie (a random UUID, httpOnly, 1-year) on first
+    write. Cookie-setting only works outside render, which is why this is separate.
+  - `currentAnonId()` / `clearAnonCookie()` — used by the login/register flow to merge.
+- **`lib/progress.ts`** is `Learner`-keyed throughout (`getProgress`, `setProgress`,
+  `listSaved`, `listCompleted`, `completedItemIds`). It builds the query from the learner
+  (`{userId}` or `{anonId}`) and uses the matching compound-unique selector
+  (`userId_itemId` or `anonId_itemId`) for upserts. **`mergeAnonProgress(userId, anonId)`**
+  folds anonymous device rows into a user's on login (OR-merging `saved`/`completed`), then
+  deletes the anon rows.
+
+**The setting** — `settings.progressTracking: "login" | "anonymous" | "off"` (default
+`"login"`, set under Admin → Settings → Capabilities):
+
+| Mode | Who is tracked | UI shown to |
+|---|---|---|
+| `login` | signed-in users only (legacy behavior) | signed-in visitors |
+| `anonymous` | users **and** anonymous devices (cookie) | everyone; merges into an account on login |
+| `off` | nobody | hidden everywhere |
+
+**Where it surfaces:** the item page (`app/i/[slug]`) computes `showProgress` from the mode
+and renders `<ItemActions>` (Save / Mark complete / Complete & continue) accordingly; the
+path pages (`app/collections/[slug]` and the index) read progress via `getLearner()` so the
+bar/Resume work for anonymous visitors too. Writes go through `POST /api/progress`, which
+resolves the learner with `getOrCreateLearnerForWrite()` and `401`s when tracking is `off`
+or login-required-but-logged-out. Login/register (`app/api/auth/*`) call `mergeAnonProgress`.
+
+**Schema note:** `ItemProgress.userId` is nullable and `anonId` was added, with two compound
+uniques (`@@unique([userId,itemId])`, `@@unique([anonId,itemId])`). NULLs are distinct in
+SQLite/Postgres unique indexes, so the two never collide. Adding the field needs a
+`prisma db push`. **Caveat:** anonymous progress is per-device/per-browser and resets if the
+visitor clears cookies — the inherent tradeoff of "no login."
+
 ## 11. Commerce flow (products & orders)
 
 1. Public product page → `AddToCartButton` writes to the localStorage cart (`lib/cart.ts`).
@@ -327,6 +399,43 @@ receipt rendering, and formatters. This is why `auth-core.ts` exists separately 
 Vitest. When you add logic, prefer putting the pure part in a Next-free module so it can be
 tested directly. `tests/` is excluded from the Next build in `tsconfig.json`.
 
+## 15b. Creating a new project (`core/scripts/create-project.mjs`)
+
+Mosaic is a monorepo: `core/` holds all shared code and each site is a thin
+workspace under `projects/`. To start a brand-new, empty site:
+
+```bash
+npm run create-project -- my-site --name "My Site"
+cd projects/my-site
+./start.sh
+```
+
+`create-project.mjs` scaffolds `projects/<slug>/` with its own config
+(`package.json`, `next.config.mjs`, `tailwind.config.ts`, `tsconfig.json`), its
+own `.env` (with a freshly generated `SESSION_SECRET` and
+`DATABASE_URL="file:./data/dev.db"` — **a database private to that project**),
+the hand-written root `src/app/layout.tsx`, and a **minimal, idempotent seed**
+(`prisma/seed.ts`) that creates one owner (from `.env`) plus default settings and
+a "General" topic — and no demo content, so the creator starts clean. The route
+tree, `schema.prisma` and `globals.css` are **not** written by the scaffolder;
+they're generated from core by the project's `npm run sync` (the `.gitignore`
+excludes them for that reason).
+
+`start.sh` is the one-command, idempotent starter: it installs workspace deps the
+first time (only when the project isn't yet linked into the root `node_modules`),
+runs `npm run sync`, prepares the DB (`db:generate` + `db:push`), seeds **only if
+the DB has no users**, then runs `next dev`. `npm run setup && npm run dev` is the
+equivalent via npm scripts.
+
+Because each project carries its own `.env` and `data/dev.db`, sites are fully
+isolated — separate content, settings and users — while sharing one copy of core.
+New projects are picked up automatically by the root `workspaces: ["core",
+"projects/*"]` glob, so no root edits are needed. Change the default
+`owner@example.com` / `changeme123` in `.env` before any real use.
+
+> Persona-oriented, click-by-click walkthroughs that start from a fresh project
+> live in `docs/codelabs/` (portfolio, course, news hub, shop, reading list).
+
 ## 16. How to extend it
 
 **Add a content type** (e.g. `audio`): add it to `ITEM_TYPES` in `types.ts`, add a meta
@@ -355,6 +464,8 @@ run `npm run db:provider && npx prisma db push`. The schema is already portable.
 | Touch auth / permissions | `src/lib/auth.ts` (+ `requireRole` calls in `app/api/**`) |
 | Work on checkout / orders | `src/lib/payments.ts`, `src/app/api/checkout/*`, `src/app/cart` |
 | Work on memberships | `src/lib/membership.ts`, `src/app/membership`, `src/app/account` |
+| Work on lesson progress / resume / courses | `src/lib/progress.ts`, `src/lib/learner.ts`, `src/components/ItemActions.tsx`, `src/app/collections/[slug]` |
+| Scaffold a brand-new site | `core/scripts/create-project.mjs` (`npm run create-project`), generated `projects/<slug>/start.sh` |
 | Edit the article editor | `src/lib/blocks.ts`, `src/components/BlockEditor.tsx`, `src/components/RichTextField.tsx` |
 | Change HTML sanitization | `src/lib/sanitize.ts` |
 | Work on search | `src/lib/search.ts`, `src/app/search`, `src/app/api/search` |

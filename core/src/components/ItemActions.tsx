@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ItemActions({
-  itemId, initialSaved, initialCompleted,
-}: { itemId: string; initialSaved: boolean; initialCompleted: boolean }) {
+  itemId, initialSaved, initialCompleted, nextHref,
+}: { itemId: string; initialSaved: boolean; initialCompleted: boolean; nextHref?: string }) {
+  const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [completed, setCompleted] = useState(initialCompleted);
   const [busy, setBusy] = useState(false);
@@ -20,6 +22,12 @@ export default function ItemActions({
       if (typeof patch.saved === "boolean") setSaved(patch.saved);
       if (typeof patch.completed === "boolean") setCompleted(patch.completed);
     }
+    return res.ok;
+  }
+
+  async function completeAndContinue() {
+    const ok = await update({ completed: true });
+    if (ok && nextHref) router.push(nextHref);
   }
 
   return (
@@ -42,6 +50,15 @@ export default function ItemActions({
       >
         {completed ? "✓ Completed" : "Mark complete"}
       </button>
+      {nextHref && (
+        <button
+          disabled={busy}
+          onClick={completeAndContinue}
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-50"
+        >
+          Complete &amp; continue →
+        </button>
+      )}
     </div>
   );
 }
