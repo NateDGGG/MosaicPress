@@ -73,6 +73,15 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
     setImgBusy("");
     if (res.ok) set(key, (await res.json()).media.url);
   }
+  // Upload an image for a specific home section (e.g. a "What is" feature block).
+  const [secImgBusy, setSecImgBusy] = useState("");
+  async function uploadSectionImage(idx: number, id: string, file: File) {
+    setSecImgBusy(id);
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/media", { method: "POST", body: fd });
+    setSecImgBusy("");
+    if (res.ok) patchSection(idx, { image: (await res.json()).media.url });
+  }
 
   // ---- Home-page section builder ----
   const rid = () => Math.random().toString(36).slice(2, 9);
@@ -131,6 +140,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       case "collections": return "Collections";
       case "type": return TYPE_LABEL[sec.itemType || ""] || "Content type";
       case "text": return sec.title ? `Text: ${sec.title}` : "Custom text block";
+      case "feature": return sec.title ? `\u201cWhat is\u201d: ${sec.title}` : "\u201cWhat is\u201d / feature block";
       case "editorsNotes": return "Editor\u2019s notes";
       case "newsletter": return "Newsletter signup";
       case "testimonials": return "Testimonials";
@@ -152,6 +162,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
     { spec: "newsletter", label: "Newsletter signup" },
     { spec: "testimonials", label: "Testimonials" },
     { spec: "text", label: "Custom text block" },
+    { spec: "feature", label: "“What is” block (title, text, image)" },
   ];
   const hasSpec = (spec: string) =>
     spec.startsWith("type:")
@@ -330,10 +341,15 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
             </select>
           </div>
         )}
-        <div className="grid grid-cols-2 gap-4">
+        <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={s.heroShowPrimaryCta} onChange={(e) => set("heroShowPrimaryCta", e.target.checked)} />
+          Show the primary hero button
+          <InfoTip text="The main call-to-action button in the hero (e.g. “▶ Watch the latest” / “Start exploring”). Uncheck to hide it while keeping the showcased item and the secondary button." />
+        </label>
+        <div className={`grid grid-cols-2 gap-4 ${s.heroShowPrimaryCta ? "" : "opacity-50"}`}>
           <div>
             <label className={label}>Primary button label (optional)</label>
-            <input value={s.heroCtaLabel} onChange={(e) => set("heroCtaLabel", e.target.value)} placeholder="Start exploring" className={field} />
+            <input value={s.heroCtaLabel} onChange={(e) => set("heroCtaLabel", e.target.value)} placeholder="Start exploring" className={field} disabled={!s.heroShowPrimaryCta} />
           </div>
           <div>
             <label className={label}>Primary button link (optional)</label>
@@ -365,6 +381,22 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
         {s.logoImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={s.logoImage} alt="" className="mb-3 h-8 w-auto max-w-[200px] object-contain" />
+        )}
+
+        {s.logoImage && (
+          <div className="mb-3">
+            <label className={label}>Logo size <InfoTip text="How tall the logo appears in the header. Larger sizes make a wordmark's text readable; Medium suits most logos, Large for text-heavy marks, Small for a compact bar." /></label>
+            <select value={s.logoSize} onChange={(e) => set("logoSize", e.target.value as SiteSettings["logoSize"])} className={`${field} max-w-xs`}>
+              <option value="small">Small (compact)</option>
+              <option value="medium">Medium (recommended)</option>
+              <option value="large">Large (readable wordmark)</option>
+            </select>
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={s.logoSolidBg} onChange={(e) => set("logoSolidBg", e.target.checked)} />
+              Keep the logo on a white background
+              <InfoTip text="Sits your logo on a small white panel so it looks identical whether the site is in light or dark mode. Turn this on if a dark or colored logo blends into the header." />
+            </label>
+          </div>
         )}
 
         <label className={label}>Favicon (browser tab icon) <InfoTip text="The little icon shown in browser tabs and bookmarks. A custom one makes your site recognizable among many open tabs." /></label>
@@ -555,17 +587,56 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
                     placeholder="Body text…" rows={3} className={field} />
                 </div>
               )}
-              {(sec.kind === "new" || sec.kind === "featured" || sec.kind === "type") && (
+              {sec.kind === "feature" && (
+                <div className="mt-2 space-y-2">
+                  <input value={sec.title || ""} onChange={(e) => patchSection(i, { title: e.target.value })}
+                    placeholder="Title — e.g. “What is Your Site?”" className={field} />
+                  <textarea value={sec.body || ""} onChange={(e) => patchSection(i, { body: e.target.value })}
+                    placeholder="Intro / description text…" rows={3} className={field} />
+                  <div className="flex items-center gap-2">
+                    <input value={sec.image || ""} onChange={(e) => patchSection(i, { image: e.target.value })}
+                      placeholder="Image URL (/uploads/… or https://…)" className={field} />
+                    <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                      {secImgBusy === sec.id ? "…" : "Upload"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadSectionImage(i, sec.id, f); }} />
+                    </label>
+                  </div>
+                  {sec.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={sec.image} alt="" className="aspect-[16/6] w-full rounded-lg object-cover" />
+                  )}
+                  <input value={sec.footer || ""} onChange={(e) => patchSection(i, { footer: e.target.value })}
+                    placeholder="Footer line (optional)" className={field} />
+                </div>
+              )}
+              {(sec.kind === "new" || sec.kind === "featured" || sec.kind === "type" || sec.kind === "topics") && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <label>Preview count</label>
+                  <label>{sec.kind === "topics" ? "Max per topic" : "Preview count"}</label>
                   <input
                     type="number" min={1}
                     value={sec.limit ?? ""}
-                    placeholder="all"
+                    placeholder={sec.kind === "topics" ? "8" : "all"}
                     onChange={(e) => patchSection(i, { limit: e.target.value ? Math.max(1, parseInt(e.target.value) || 1) : undefined })}
                     className="w-20 rounded border border-slate-300 px-2 py-1"
                   />
-                  <span>cards on the home page; &ldquo;See all&rdquo; opens the full list.</span>
+                  <span>
+                    {sec.kind === "topics"
+                      ? "items shown per topic; “See all” jumps to the topic when there are more (the default topic shows all your content)."
+                      : "cards on the home page; “See all” opens the full list."}
+                  </span>
+                  {sec.kind === "topics" && (
+                    <>
+                      <label className="ml-2">Columns</label>
+                      <input
+                        type="number" min={1} max={6}
+                        value={sec.cols ?? ""}
+                        placeholder="4"
+                        onChange={(e) => patchSection(i, { cols: e.target.value ? Math.min(6, Math.max(1, parseInt(e.target.value) || 4)) : undefined })}
+                        className="w-16 rounded border border-slate-300 px-2 py-1"
+                      />
+                      <span>tiles across (default 4).</span>
+                    </>
+                  )}
                   <span className="ml-2">Commentary</span>
                   <select
                     value={sec.commentary || ""}
@@ -602,6 +673,12 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
           <input type="checkbox" checked={s.showSidebar} onChange={(e) => set("showSidebar", e.target.checked)} />
           Show a left sidebar to filter by content type and topic
           <InfoTip text="Adds a filter sidebar to the home page so visitors can narrow by content type or topic. Helpful for larger catalogs; leave off for a cleaner, simpler landing page." />
+        </label>
+
+        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={s.alternateSections} onChange={(e) => set("alternateSections", e.target.checked)} />
+          Alternate section background colors
+          <InfoTip text="Gives stacked home-page sections cycling background tints (derived from your theme) so they don’t all look the same — like the colored bands on sites such as PragerU. Only applies when the sidebar is off." />
         </label>
       </section>
 

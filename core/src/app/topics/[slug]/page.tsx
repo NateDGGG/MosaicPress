@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTagBySlug, tagItems } from "../../../lib/taxonomy";
+import { listItems } from "../../../lib/items";
 import ItemCard from "../../../components/ItemCard";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function TopicPage({ params }: { params: { slug: string } }) {
   const tag = await getTagBySlug(params.slug);
   if (!tag) notFound();
-  const items = await tagItems(tag.id, { publishedOnly: true, sortMode: tag.sortMode });
+  // The default ("catch-all") topic shows everything; other topics show only
+  // the content assigned to them.
+  const items = tag.isDefault
+    ? await listItems({ publishedOnly: true })
+    : await tagItems(tag.id, { publishedOnly: true, sortMode: tag.sortMode });
 
   return (
     <div>

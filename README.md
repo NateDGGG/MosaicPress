@@ -50,23 +50,55 @@ curator who'd rather publish than administer.
 
 ## Quick start
 
-```bash
-git clone https://github.com/NateDGGG/MosaicPress.git && cd MosaicPress
-npm install                                   # once, at the repo root
+> **First time only** (requires Node 18.17+, 20+ recommended):
+> ```bash
+> git clone https://github.com/NateDGGG/MosaicPress.git && cd MosaicPress && npm install
+> ```
 
+**1. Create a new site**
+
+```bash
 npm run create-project -- my-site --name "My Site"
-cd projects/my-site
-./start.sh                                     # sets everything up + runs it
 ```
 
-Open **http://localhost:3000** and sign in at `/login` with the seeded owner
-(`owner@example.com` / `changeme123` — change these in `projects/my-site/.env`
-before going live). You now have an empty site with a full admin and **its own
-database** — ready to brand and fill in.
+Scaffolds `projects/my-site/` with its own branding, config, and **its own
+database** — completely separate from any other site in the repo.
+
+**2. Set it up and run it**
+
+```bash
+cd projects/my-site
+./start.sh
+```
 
 `start.sh` is idempotent: it installs dependencies the first time, generates the
-site from the shared core, creates the database, seeds an owner, and starts the
-dev server. Run it again any time to start the site.
+site from the shared core, creates the database, seeds an owner account, and
+starts **two servers** — the public site and a separate admin. Re-run it any time.
+
+**3. Open it and sign in**
+
+| | URL |
+|---|---|
+| **Public site** | http://localhost:3000 |
+| **Admin** | http://localhost:3001/admin |
+
+The admin runs on the next port up (public port + 1). Sign in with the default
+owner account:
+
+```
+Email:    owner@example.com
+Password: changeme123
+```
+
+> **Change these before going live** — edit `SEED_OWNER_EMAIL` /
+> `SEED_OWNER_PASSWORD` in `projects/my-site/.env` (and re-seed), or update the
+> account from the admin. To use a different public port: `PORT=8080 ./start.sh`
+> (admin then runs on `8081`).
+
+You now have an empty site with a full admin, ready to brand and fill in.
+
+> Want a guided, click-by-click build for a specific kind of site? See the
+> [codelabs](docs/codelabs/).
 
 ---
 

@@ -28,6 +28,8 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
   const subFg = dark ? "#9fb0c5" : "#64748b";
   const headerBg = s.headerColor || darken(s.primaryColor, dark ? 0.5 : 0.6);
   const bandBg = s.bandColor || (dark ? darken(s.primaryColor, 0.4) : tint(s.accentColor, 0.85));
+  // Alternating section tones (page bg → primary tint → accent tint).
+  const secTones = [pageBg, dark ? darken(s.primaryColor, 0.34) : tint(s.primaryColor, 0.93), dark ? darken(s.accentColor, 0.34) : tint(s.accentColor, 0.93)];
   const sections = s.homeSections.filter((x) => x.enabled);
   const initials = (s.siteName || "ML").slice(0, 2).toUpperCase();
 
@@ -66,8 +68,11 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
         <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: headerBg, color: "#fff" }}>
           <div className="flex items-center gap-2">
             {s.logoImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.logoImage} alt="" className="h-5 w-auto max-w-[90px] object-contain" />
+              <span className={s.logoSolidBg ? "inline-flex rounded p-1" : "inline-flex"}
+                style={s.logoSolidBg ? { backgroundColor: "#ffffff", backgroundImage: "linear-gradient(#ffffff,#ffffff)", colorScheme: "only light" } : undefined}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.logoImage} alt="" className={`${s.logoSize === "large" ? "h-7" : s.logoSize === "small" ? "h-4" : "h-6"} w-auto max-w-[120px] object-contain`} />
+              </span>
             ) : (
               <>
                 <span className="grid h-5 w-5 place-items-center text-[10px] font-bold" style={{ ...r(4), background: s.accentColor, color: "#fff" }}>{initials}</span>
@@ -88,7 +93,7 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
             <div className="mt-1 text-base font-bold leading-snug" style={{ fontFamily: headFam }}>{s.tagline || "Your tagline here"}</div>
             {s.heroSubtitle && <div className="mt-1 line-clamp-2 text-[10px] text-white/80">{s.heroSubtitle}</div>}
             <div className="mt-3 flex gap-2">
-              <span className="bg-white px-3 py-1 text-[10px] font-semibold" style={{ ...r(6), color: s.primaryColor }}>{s.heroCtaLabel || "Start exploring"}</span>
+              {s.heroShowPrimaryCta && <span className="bg-white px-3 py-1 text-[10px] font-semibold" style={{ ...r(6), color: s.primaryColor }}>{s.heroCtaLabel || "Start exploring"}</span>}
               {s.heroCta2Label && <span className="border border-white/50 px-3 py-1 text-[10px] font-semibold text-white" style={r(6)}>{s.heroCta2Label}</span>}
             </div>
           </div>
@@ -105,7 +110,8 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
               No sections enabled — only the hero will show.
             </p>
           )}
-          {sections.map((sec) => (
+          {sections.map((sec, idx) => {
+            const node = (
             sec.kind === "text" ? (
               <div key={sec.id} className="border p-3" style={{ ...r(), background: cardBg, borderColor: dark ? "#22304a" : "#e2e8f0" }}>
                 {sec.title && <div className="text-xs font-bold" style={{ color: fg }}>{sec.title}</div>}
@@ -128,6 +134,13 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
                   ))}
                 </div>
               </div>
+            ) : sec.kind === "feature" ? (
+              <div key={sec.id} className="text-center">
+                <div className="text-sm font-bold" style={{ color: fg }}>{sec.title || "What is …?"}</div>
+                {sec.body && <div className="mx-auto mt-1 line-clamp-2 max-w-[85%] text-[10px]" style={{ color: subFg }}>{sec.body}</div>}
+                <div className="mx-auto mt-2 h-16 w-[85%]" style={{ ...r(8), backgroundColor: sec.image ? undefined : (dark ? "#1b2740" : "#e8edf4"), backgroundImage: sec.image ? `url(${sec.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }} />
+                {sec.footer && <div className="mt-1 text-[9px]" style={{ color: subFg }}>{sec.footer}</div>}
+              </div>
             ) : (
               <div key={sec.id}>
                 <div className="mb-1 text-xs font-bold" style={{ color: fg }}>
@@ -140,7 +153,10 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
                 </div>
               </div>
             )
-          ))}
+            );
+            if (!s.alternateSections || idx % secTones.length === 0) return <div key={sec.id}>{node}</div>;
+            return <div key={sec.id} className="-mx-4 px-4 py-1.5" style={{ background: secTones[idx % secTones.length] }}>{node}</div>;
+          })}
 
           {/* CTA band */}
           <div className="mt-2 p-3 text-center" style={{ ...r(), background: bandBg, color: fg }}>

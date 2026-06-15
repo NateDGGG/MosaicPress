@@ -8,9 +8,9 @@
   },
   "scripts": {
     "sync": "node ../../core/scripts/sync-routes.mjs .",
-    "dev": "next dev",
+    "dev": "node ../../core/scripts/serve.mjs dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node ../../core/scripts/serve.mjs start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push --skip-generate --accept-data-loss",
     "db:seed": "prisma db seed",

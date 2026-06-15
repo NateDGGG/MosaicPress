@@ -424,8 +424,18 @@ excludes them for that reason).
 `start.sh` is the one-command, idempotent starter: it installs workspace deps the
 first time (only when the project isn't yet linked into the root `node_modules`),
 runs `npm run sync`, prepares the DB (`db:generate` + `db:push`), seeds **only if
-the DB has no users**, then runs `next dev`. `npm run setup && npm run dev` is the
-equivalent via npm scripts.
+the DB has no users**, then runs `npm run dev`. `npm run setup && npm run dev` is
+the equivalent via npm scripts.
+
+**Two-surface serving.** `dev` and `start` run through `core/scripts/serve.mjs`,
+which launches Next on a private internal port and puts two tiny reverse proxies
+in front of it: the **public site** on `PORT` (default 3000) and the **admin** on
+`PORT + 1` (default 3001). `/admin*` on the public port redirects to the admin
+port, and non-admin paths on the admin port redirect to `/admin`, so the two
+surfaces stay cleanly separated. Sessions still work across both because cookies
+aren't port-specific. This applies to local/self-hosted node only; on a
+single-port host (e.g. Vercel) the scripts aren't used and the admin stays at
+`/admin` on the one port.
 
 Because each project carries its own `.env` and `data/dev.db`, sites are fully
 isolated — separate content, settings and users — while sharing one copy of core.

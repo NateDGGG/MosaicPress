@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "../lib/db";
 import { getSettings, sectionPalette } from "../lib/settings";
 import { fontStack, fontGoogleHref } from "../lib/fonts";
-import { getSessionUser, isStaff } from "../lib/auth";
+import { getSessionUser } from "../lib/auth";
 import CartButton from "./CartButton";
 import AnalyticsInjector from "./AnalyticsInjector";
 
@@ -21,6 +21,13 @@ export default async function RootChrome({ children }: { children: React.ReactNo
   });
   const present = new Set(presentRows.map((r) => r.type));
   const hasPlans = (await prisma.plan.count()) > 0;
+  // "Paths" and "Presenters" appear only when there's something to show.
+  const [collectionCount, presenterCount] = await Promise.all([
+    prisma.collection.count(),
+    prisma.presenter.count(),
+  ]);
+  const hasPaths = collectionCount > 0;
+  const hasPresenters = presenterCount > 0;
   const TYPE_NAV: Array<{ type: string; href: string; label: string }> = [
     { type: "blog", href: "/blog", label: "Blog" },
     { type: "link", href: "/links", label: "Links" },
@@ -41,14 +48,18 @@ export default async function RootChrome({ children }: { children: React.ReactNo
     --page-bg:${p.pageBg};
     --band-bg:${p.bandBg};--band-fg:${p.bandFg};
     --topic-bg:${p.topicBg};--topic-fg:${p.topicFg};
+    --sec-a:${p.secA};--sec-b:${p.secB};
     --footer-bg:${p.footerBg};--footer-fg:${p.footerFg};--card-aspect:${cardAspect};
   }`.replace(/\s+/g, " ");
 
   const initials = s.siteName.slice(0, 2).toUpperCase();
 
   return (
-    <html lang="en" data-theme={s.theme} data-radius={s.radius} data-card-shadow={s.cardShadow}>
+    <html lang="en" data-theme={s.theme} data-radius={s.radius} data-card-shadow={s.cardShadow} style={{ colorScheme: s.theme }}>
       <head>
+        {/* Tell Chromium/Brave we manage our own theming, so its "auto dark
+            mode for web contents" doesn't re-invert our colors and logo. */}
+        <meta name="color-scheme" content="light dark" />
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         {s.faviconImage && <link rel="icon" href={s.faviconImage} />}
         {fontHref && <link rel="stylesheet" href={fontHref} />}
@@ -60,8 +71,13 @@ export default async function RootChrome({ children }: { children: React.ReactNo
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold" style={{ color: "rgb(var(--header-fg))" }}>
               {s.logoImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.logoImage} alt={s.siteName} className="h-8 w-auto max-w-[180px] object-contain" />
+                <span className={s.logoSolidBg ? "inline-flex rounded-md p-1.5" : "inline-flex"}
+                  style={s.logoSolidBg ? { backgroundColor: "#ffffff", backgroundImage: "linear-gradient(#ffffff,#ffffff)", colorScheme: "only light" } : undefined}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.logoImage} alt={s.siteName} className={`${
+                    s.logoSize === "large" ? "h-14 max-w-[280px]" : s.logoSize === "small" ? "h-8 max-w-[160px]" : "h-11 max-w-[220px]"
+                  } w-auto object-contain`} />
+                </span>
               ) : (
                 <>
                   <span className="grid h-7 w-7 place-items-center rounded bg-accent text-sm font-bold text-white">{initials}</span>
@@ -75,8 +91,8 @@ export default async function RootChrome({ children }: { children: React.ReactNo
               style={{ color: "rgb(var(--header-fg) / 0.9)" }}>
               <Link href="/" className="hover:text-white">Home</Link>
               <Link href="/topics" className="hover:text-white">Topics</Link>
-              <Link href="/collections" className="hover:text-white">Paths</Link>
-              <Link href="/presenters" className="hover:text-white">Presenters</Link>
+              {hasPaths && <Link href="/collections" className="hover:text-white">Paths</Link>}
+              {hasPresenters && <Link href="/presenters" className="hover:text-white">Presenters</Link>}
               {typeLinks.map((t) => (
                 <Link key={t.href} href={t.href} className="hover:text-white">{t.label}</Link>
               ))}
@@ -89,9 +105,7 @@ export default async function RootChrome({ children }: { children: React.ReactNo
             {/* Desktop actions (cart + account) */}
             <div className="hidden items-center gap-4 text-sm font-medium md:flex" style={{ color: "rgb(var(--header-fg) / 0.9)" }}>
               {s.commerceEnabled && <CartButton />}
-              {isStaff(user) ? (
-                <Link href="/admin" className="rounded-md bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">Admin</Link>
-              ) : user ? (
+              {user ? (
                 <Link href="/account" className="rounded-md bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">Account</Link>
               ) : (
                 <>
@@ -111,8 +125,8 @@ export default async function RootChrome({ children }: { children: React.ReactNo
                   {[
                     { href: "/", label: "Home" },
                     { href: "/topics", label: "Topics" },
-                    { href: "/collections", label: "Paths" },
-                    { href: "/presenters", label: "Presenters" },
+                    ...(hasPaths ? [{ href: "/collections", label: "Paths" }] : []),
+                    ...(hasPresenters ? [{ href: "/presenters", label: "Presenters" }] : []),
                     ...typeLinks,
                     ...(hasPlans ? [{ href: "/membership", label: "Membership" }] : []),
                     { href: "/about", label: "About" },
@@ -124,9 +138,7 @@ export default async function RootChrome({ children }: { children: React.ReactNo
                   ))}
                   {s.commerceEnabled && <Link href="/cart" className="rounded-md px-3 py-2.5 hover:bg-slate-100">Cart</Link>}
                   <div className="my-1 border-t border-slate-100" />
-                  {isStaff(user) ? (
-                    <Link href="/admin" className="rounded-md px-3 py-2.5 font-semibold text-brand hover:bg-slate-100">Admin</Link>
-                  ) : user ? (
+                  {user ? (
                     <Link href="/account" className="rounded-md px-3 py-2.5 font-semibold text-brand hover:bg-slate-100">Account</Link>
                   ) : (
                     <>

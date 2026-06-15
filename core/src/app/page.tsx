@@ -96,25 +96,73 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         const href = t === "blog" ? "/blog" : t === "link" ? "/links" : `/?type=${t}`;
         return <Rail key={sec.id} title={sec.title || TYPE_PLURAL[t]} href={href} items={shown} commentaryMode={sec.commentary || cm} />;
       }
-      case "topics":
-        return homeTagList.length > 0 ? (
-          <section key={sec.id} className="mb-10">
-            <h2 className="mb-3 text-xl font-bold">{sec.title || "Browse by topic"}</h2>
-            <div className="flex flex-wrap gap-2">
-              {homeTagList.map((t) => (
-                <Link key={t.id} href={`/topics/${t.slug}`}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:border-brand hover:text-brand">
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null;
+      case "topics": {
+        // Show a content rail per topic. Topics flagged "show on home" appear,
+        // and the default ("catch-all") topic is always included automatically.
+        const def = allTags.find((t) => t.isDefault);
+        const topicsToShow = [...homeTagList];
+        if (def && !topicsToShow.some((t) => t.id === def.id)) topicsToShow.unshift(def);
+        if (topicsToShow.length === 0) return null;
+        const perTopic = sec.limit && sec.limit > 0 ? sec.limit : 8;
+        // Tiled grid: columns are configurable (default 4). Static class strings
+        // so Tailwind keeps them; always responsive (1 col → 2 → N).
+        const colsClass: Record<number, string> = {
+          1: "grid-cols-1",
+          2: "grid-cols-1 sm:grid-cols-2",
+          3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+          4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+          5: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5",
+          6: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6",
+        };
+        const cols = sec.cols && colsClass[sec.cols] ? sec.cols : 4;
+        const blocksForTopics = topicsToShow
+          .map((t) => {
+            const tItems = t.isDefault ? all : all.filter((i) => i.tags.some((tg) => tg.tag.slug === t.slug));
+            if (tItems.length === 0) return null;
+            const href = tItems.length > perTopic ? `/topics/${t.slug}` : undefined;
+            const tcm = sec.commentary || cm;
+            return (
+              <section key={t.id} className="mb-10">
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h2 className="text-xl font-bold">{t.name}</h2>
+                  {href && (
+                    <Link href={href} className="text-sm font-medium text-brand hover:underline">See all →</Link>
+                  )}
+                </div>
+                <div className={`grid gap-5 ${colsClass[cols]}`}>
+                  {tItems.slice(0, perTopic).map((item) => (
+                    <ItemCard key={item.id} item={item} commentaryMode={tcm} commentaryChars={settings.commentaryExcerptChars} />
+                  ))}
+                </div>
+              </section>
+            );
+          })
+          .filter(Boolean);
+        if (blocksForTopics.length === 0) return null;
+        return (
+          <div key={sec.id}>
+            {sec.title && <h2 className="mb-4 text-xl font-bold">{sec.title}</h2>}
+            {blocksForTopics}
+          </div>
+        );
+      }
       case "text":
         return (sec.title || sec.body) ? (
           <section key={sec.id} className="mb-10 rounded-xl border border-slate-200 bg-white p-6">
             {sec.title && <h2 className="mb-2 text-xl font-bold">{sec.title}</h2>}
             {sec.body && <div className="prose-body whitespace-pre-line text-slate-700">{sec.body}</div>}
+          </section>
+        ) : null;
+      case "feature":
+        return (sec.title || sec.body || sec.image || sec.footer) ? (
+          <section key={sec.id} className="mb-12 text-center">
+            {sec.title && <h2 className="text-3xl font-bold sm:text-4xl">{sec.title}</h2>}
+            {sec.body && <p className="mx-auto mt-4 max-w-2xl whitespace-pre-line text-slate-600">{sec.body}</p>}
+            {sec.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={sec.image} alt={sec.title || ""} className="mx-auto mt-8 w-full max-w-4xl rounded-2xl object-cover shadow-sm" />
+            )}
+            {sec.footer && <p className="mx-auto mt-6 max-w-2xl text-sm text-slate-500">{sec.footer}</p>}
           </section>
         ) : null;
       case "testimonials":
@@ -168,9 +216,28 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
       </div>
     );
   } else {
+    // Vary section backgrounds for visual rhythm: cycle page bg → tint A → tint B.
+    // Full-bleed stripes only when there's no sidebar (which constrains width).
+    const alternate = settings.alternateSections && !settings.showSidebar;
+    const tones = ["rgb(var(--page-bg))", "rgb(var(--sec-a))", "rgb(var(--sec-b))"];
+    let bandIdx = -1;
+    const sectionNodes = settings.homeSections.map((sec) => {
+      const node = renderSection(sec);
+      if (!node) return null;
+      if (!alternate) return node;
+      bandIdx++;
+      const bg = tones[bandIdx % tones.length];
+      // page-bg tone needs no stripe (it equals the page); render in flow.
+      if (bandIdx % tones.length === 0) return <div key={sec.id} className="pt-10">{node}</div>;
+      return (
+        <div key={sec.id} className="w-screen ml-[calc(50%-50vw)]" style={{ background: bg }}>
+          <div className="mx-auto max-w-6xl px-4 pt-10 pb-2">{node}</div>
+        </div>
+      );
+    });
     main = (
       <div>
-        {settings.homeSections.map(renderSection)}
+        {alternate ? sectionNodes : settings.homeSections.map(renderSection)}
         {all.length === 0 && (
           <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-500">
             Nothing published yet. Head to the <Link href="/admin" className="text-brand underline">admin</Link> to add content.
@@ -190,7 +257,7 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         const primaryLabel = settings.heroCtaLabel || (hero ? (hero.type === "video" ? "▶ Watch the latest" : "Start exploring") : "");
         const ctas = (
           <div className="mt-6 flex flex-wrap gap-3">
-            {primaryHref && (
+            {settings.heroShowPrimaryCta && primaryHref && (
               <Link href={primaryHref} className="rounded-lg bg-white px-5 py-2.5 font-semibold text-brand hover:bg-white/90">
                 {primaryLabel || "Explore"}
               </Link>

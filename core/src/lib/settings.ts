@@ -4,7 +4,7 @@ import type { FieldDef } from "./fields";
 // Site-wide configuration. Defaults here; overridable via the Setting table
 // (admin → Settings). The product name itself is configurable — "Mosaic" is
 // only the default.
-export type HomeSectionKind = "new" | "featured" | "topics" | "collections" | "type" | "text" | "editorsNotes" | "newsletter" | "testimonials";
+export type HomeSectionKind = "new" | "featured" | "topics" | "collections" | "type" | "text" | "feature" | "editorsNotes" | "newsletter" | "testimonials";
 
 // One block in the home-page layout. Reorderable and individually toggleable
 // in admin → Settings. "text" blocks hold owner-authored copy.
@@ -13,10 +13,13 @@ export interface HomeSection {
   kind: HomeSectionKind;
   enabled: boolean;
   itemType?: string; // kind="type": article | video | product | link | book
-  limit?: number;    // rail sections (new/featured/type): max cards previewed on home
+  limit?: number;    // rail sections (new/featured/type/topics): max cards previewed on home (per topic for "topics")
+  cols?: number;     // kind="topics": columns in the tiled grid (default 4)
   commentary?: "hidden" | "excerpt" | "full"; // per-section override of the global card commentary mode
-  title?: string;    // kind="text" heading (also used as a label override)
-  body?: string;     // kind="text" body copy
+  title?: string;    // kind="text"/"feature" heading (also used as a label override)
+  body?: string;     // kind="text"/"feature" body copy
+  image?: string;    // kind="feature": image shown under the text
+  footer?: string;   // kind="feature": optional footer line under the image
 }
 
 export interface FooterLink { label: string; href: string; }
@@ -31,6 +34,7 @@ export interface SiteSettings {
   heroOverlay: number;    // 0–90 darken overlay % for the image layout (legibility)
   heroSource: "auto" | "item" | "none"; // what the hero showcases: latest/featured, a chosen item, or nothing
   heroItemSlug: string;   // when heroSource="item"
+  heroShowPrimaryCta: boolean; // show/hide the primary hero button (e.g. "Watch the latest")
   heroCtaLabel: string;   // override the primary hero button text
   heroCtaHref: string;    // override the primary hero button link
   heroCta2Label: string;  // secondary hero button text ("" hides it)
@@ -48,6 +52,8 @@ export interface SiteSettings {
   footerColumns: FooterColumn[];  // grouped link columns in the footer
   footerSocial: FooterLink[];     // social / external links row
   logoImage: string;       // header logo (falls back to initials when empty)
+  logoSize: "small" | "medium" | "large"; // header logo display size
+  logoSolidBg: boolean;    // sit the logo on a constant white panel (theme-independent)
   faviconImage: string;    // browser tab icon
   headerSticky: boolean;   // keep the header pinned on scroll
   headerNavAlign: "right" | "center"; // desktop nav placement
@@ -62,6 +68,7 @@ export interface SiteSettings {
   cardShadow: "flat" | "subtle" | "raised"; // card elevation
   groupByType: boolean;
   showSidebar: boolean;
+  alternateSections: boolean; // vary home-section background colors for visual rhythm
   aboutTitle: string;
   aboutBody: string;
   affiliateTag: string;
@@ -121,6 +128,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   heroLayout: "gradient",
   heroOverlay: 45,
   heroSource: "auto",
+  heroShowPrimaryCta: true,
   heroItemSlug: "",
   heroCtaLabel: "",
   heroCtaHref: "",
@@ -139,6 +147,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   footerColumns: [],
   footerSocial: [],
   logoImage: "",
+  logoSize: "medium",
+  logoSolidBg: false,
   faviconImage: "",
   headerSticky: false,
   headerNavAlign: "right",
@@ -153,6 +163,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   cardShadow: "subtle",
   groupByType: false,
   showSidebar: false,
+  alternateSections: true,
   aboutTitle: "About",
   aboutBody: "",
   affiliateTag: "",
@@ -259,6 +270,10 @@ export function sectionPalette(s: SiteSettings) {
     // a distinct primary-tinted band (e.g. "Browse by topic")
     topicBg: dark ? shade(s.primaryColor, 0.32) : tint(s.primaryColor, 0.9),
     topicFg: dark ? "237 242 249" : "30 41 59",
+    // two subtle, theme-derived tones home sections cycle through (with the page
+    // background) so stacked sections don't all look the same.
+    secA: dark ? shade(s.primaryColor, 0.30) : tint(s.primaryColor, 0.93),
+    secB: dark ? shade(s.accentColor, 0.30) : tint(s.accentColor, 0.93),
     // footer
     footerBg: s.footerColor ? hexToRgbTriplet(s.footerColor) : (dark ? "3 6 16" : shade(s.primaryColor, 0.42)),
     footerFg: "203 213 225",

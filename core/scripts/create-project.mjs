@@ -60,9 +60,9 @@ const files = {
       prisma: { schema: "schema.prisma", seed: "tsx prisma/seed.ts" },
       scripts: {
         sync: "node ../../core/scripts/sync-routes.mjs .",
-        dev: "next dev",
+        dev: "node ../../core/scripts/serve.mjs dev",
         build: "next build",
-        start: "next start",
+        start: "node ../../core/scripts/serve.mjs start",
         "db:generate": "prisma generate",
         "db:push": "prisma db push --skip-generate --accept-data-loss",
         "db:seed": "prisma db seed",
@@ -288,9 +288,10 @@ else
   echo "==> Database already has data; skipping seed."
 fi
 
-# 5) Start the dev server.
+# 5) Start the dev server (public on PORT, admin on PORT+1).
 echo ""
-echo "==> Starting ${displayName} at http://localhost:\${PORT:-3000}  (admin: /login)"
+echo "==> Starting ${displayName}"
+echo "    Public: http://localhost:\${PORT:-3000}   ·   Admin: http://localhost:\$(( \${PORT:-3000} + 1 ))/admin"
 npm run dev
 `,
 
@@ -308,10 +309,15 @@ cd projects/${slug}
 \`\`\`
 
 That installs dependencies (first run), generates the routes/schema from core,
-creates the database, seeds an owner account, and starts the dev server at
-http://localhost:3000. Sign in at \`/login\` with the credentials printed at the
-end of seeding (default \`owner@example.com\` / \`changeme123\` — change these in
-\`.env\` before first run for anything real).
+creates the database, seeds an owner account, and starts two servers:
+
+- **Public site** — http://localhost:3000
+- **Admin** — http://localhost:3001/admin (the public port + 1)
+
+Sign in to the admin with the default owner account
+**\`owner@example.com\` / \`changeme123\`** — change these in \`.env\` before first
+run for anything real. (Set a different public port with \`PORT=8080 ./start.sh\`;
+the admin then runs on 8081.)
 
 Prefer npm scripts? \`npm run setup && npm run dev\` does the same (minus the
 dependency install, which you run once with \`npm install\` at the repo root).

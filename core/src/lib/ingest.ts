@@ -3,8 +3,12 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import type { ItemType, NormalizedDraft } from "./types";
 
+// Use a realistic browser User-Agent. Many sites (WordPress + CDN/WAF, news
+// sites, shops) serve unknown "bot" agents a 403 or a JS challenge page with no
+// Open Graph tags, which would leave us with a title-only draft (no image or
+// summary). A normal browser UA gets the real HTML with its meta tags.
 const USER_AGENT =
-  "MosaicBot/0.1 (+https://example.com/bot; content ingestion)";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_BYTES = 2_000_000; // 2 MB cap on fetched HTML
 
@@ -67,7 +71,11 @@ async function safeFetch(url: URL): Promise<Response> {
     return await fetch(url, {
       signal: controller.signal,
       redirect: "follow",
-      headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/json;q=0.9,*/*;q=0.8" },
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
     });
   } finally {
     clearTimeout(timer);
