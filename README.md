@@ -1,119 +1,144 @@
-# Mosaic — monorepo
+# MosaicPress
 
-A shared **core** powering multiple **projects** (sites). Update core once; every
-project benefits. Each project has its own branding, content, database, and uploads.
+**A minimal, batteries-included website builder for non-programmers — stand up a real content site in minutes, not a weekend.**
+
+![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-SQLite%20%2F%20Postgres-2D3748?logo=prisma&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38BDF8?logo=tailwindcss&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+
+MosaicPress is a compact publishing platform for portfolios, courses, news hubs,
+shops, and curated link/reading collections. Everything is built around one idea:
+your content and the web's content live side by side in a single, consistent
+format — write an article, embed a video, sell a product, or link out to an
+external article, and they all render as the same clean card and page.
+
+It ships with the things real sites need **already built in** — commerce,
+memberships, contact and newsletter forms, booking, a self-paced course player,
+SEO, and a live-preview theme editor — all behind simple on/off toggles. No
+plugins to hunt for, install, or keep patched.
+
+---
+
+## Why MosaicPress instead of WordPress?
+
+WordPress is powerful and has an enormous ecosystem. MosaicPress makes a different
+trade: **less to assemble, less to maintain, faster to launch.**
+
+| | **MosaicPress** | **WordPress** |
+|---|---|---|
+| **Get started** | One command creates a new site; one command runs it | Install PHP + MySQL, or buy managed hosting, then configure |
+| **Database** | SQLite by default (just a file) — Postgres for production | Requires a MySQL/MariaDB server |
+| **Core features** | Shop, memberships, forms, newsletter, booking, courses **built in** | Mostly added via third-party plugins |
+| **Maintenance** | One small codebase; update once | Core **plus** every plugin/theme needs ongoing security updates |
+| **Footprint** | One compact app, fast by default | Heavier; performance depends on plugin sprawl |
+| **Content model** | Your content **and** external links/videos/products in one format | Post/page centric; mixing in external content needs plugins |
+| **Customizing** | A guided Settings panel with live preview and tooltips | Theme/plugin settings vary widely in quality |
+| **Run many sites** | Shared core + thin per-site projects (update core once) | Multisite is possible but heavier to operate |
+
+**It's the better fit when** you want a clean, modern site live quickly without
+becoming a webmaster — a creator, professional, small business, educator, or
+curator who'd rather publish than administer.
+
+> **When WordPress may be the better choice:** if you need its vast plugin/theme
+> marketplace, one-click managed hosting from countless providers, or a large pool
+> of existing WordPress developers. MosaicPress is opinionated and newer — you (or
+> a developer) self-host it on Vercel, a container host, or your own server.
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/NateDGGG/MosaicPress.git && cd MosaicPress
+npm install                                   # once, at the repo root
+
+npm run create-project -- my-site --name "My Site"
+cd projects/my-site
+./start.sh                                     # sets everything up + runs it
+```
+
+Open **http://localhost:3000** and sign in at `/login` with the seeded owner
+(`owner@example.com` / `changeme123` — change these in `projects/my-site/.env`
+before going live). You now have an empty site with a full admin and **its own
+database** — ready to brand and fill in.
+
+`start.sh` is idempotent: it installs dependencies the first time, generates the
+site from the shared core, creates the database, seeds an owner, and starts the
+dev server. Run it again any time to start the site.
+
+---
+
+## What you can build
+
+Step-by-step, click-by-click walkthroughs (no coding) live in
+[`docs/codelabs/`](docs/codelabs/) — each starts from a fresh project:
+
+1. [**Professional portfolio**](docs/codelabs/1-professional-portfolio.md) — bio, work, services, bookings.
+2. [**A course / lesson series**](docs/codelabs/2-lesson-series-course.md) — ordered multimedia lessons that remember where each learner left off.
+3. [**A news / updates hub**](docs/codelabs/3-news-hub.md) — curate links + publish posts, with email signup.
+4. [**A small-business shop**](docs/codelabs/4-small-business-shop.md) — products, cart, checkout, orders.
+5. [**A curated reading list**](docs/codelabs/5-professor-reading-list.md) — best articles and books on a topic.
+
+## Features
+
+- **Content types:** articles (block editor), blog posts (markdown), videos
+  (hosted or embedded), products, curated links, and books — plus add-from-link
+  that auto-fetches titles and images.
+- **Organize:** topics, authors/presenters, and ordered collections (used as
+  courses, reading paths, or a shop).
+- **Capabilities (opt-in toggles):** commerce (cart, checkout, inventory, orders,
+  Stripe), memberships, contact form, newsletter, booking, testimonials, and a
+  self-paced **course player** with resume — optionally **without requiring login**.
+- **Design without code:** one-click style presets, logo/colors/fonts, hero
+  builder, footer builder, and a **live preview** — every setting has a help
+  tooltip.
+- **Found & shared:** automatic SEO meta + Open Graph, `sitemap.xml`, `robots.txt`,
+  and a paste-in analytics field.
+
+---
+
+## How it works (for the curious)
+
+MosaicPress is a small monorepo: a shared **core** powers any number of thin
+**projects** (sites).
 
 ```
-core/                     The shared package (@mosaic/core)
-  src/lib/*               business logic
-  src/components/*        UI (incl. RootChrome site shell)
-  src/app/*               route implementations (pages + API handlers)
-  src/styles/globals.css  base styles
-  prisma/schema.prisma    the single source-of-truth data model
-  scripts/                sync-routes generator, sync/publish/seed helpers
-  tests/                  Vitest unit tests
-projects/
-  mosaic-learn/           a PragerU-style education demo
-  base/                   the general-purpose starter
+core/                     Shared package (@mosaic/core): lib, components, routes, schema, tests
+projects/<your-site>/     A thin site: its own .env, branding, database, and uploads
 package.json              npm workspaces: ["core", "projects/*"]
 ```
 
-## Run a project
+Each project's pages, API routes, database schema, and base styles are **generated
+from core** by `npm run sync`, so every site shares identical, up-to-date features
+while keeping its own content and look. Update core once; refresh each site with a
+single command. Each site has its **own database** (SQLite file by default;
+Postgres for production), so sites are fully isolated.
+
+### Everyday commands (inside a project)
 
 ```bash
-npm install                      # once, at the repo root (hoists deps)
-cd projects/mosaic-learn         # or projects/base
-npm run setup                    # sync core -> project, generate client, db push, seed
-npm run dev                      # http://localhost:3000
+./start.sh            # set up (if needed) and run the dev server
+npm run setup         # sync from core + prisma generate + db push + seed
+npm run dev           # run the dev server
+npm run build         # production build
 ```
 
-`npm run setup` runs `npm run sync` (regenerate route stubs + copy schema + base
-globals from core), then Prisma generate/push, then the project seed.
+### Deploy
 
-Default logins (from the seed): `owner@example.com / changeme123`,
-`editor@example.com / editor123`.
+SQLite is perfect for local and small sites. For production, set
+`DATABASE_PROVIDER=postgresql` and a Postgres `DATABASE_URL` in the project's
+`.env`, add your `STRIPE_*` / `SMTP_*` keys as needed, and deploy to Vercel or via
+the included Docker setup. See the guides below.
 
-## Rebuild from scratch
+---
 
-The source tree is the source of truth, but `node_modules/`, the generated Prisma
-client, and each project's SQLite database (`projects/*/data/dev.db`) are **not**
-committed/synced — recreate them on a fresh machine or after a clean checkout:
+## Docs
 
-```bash
-npm install                      # repo root — installs + hoists all workspaces
-cd projects/mosaic-learn         # or projects/base
-npm run setup                    # sync + prisma generate + db push + seed
-npm run dev                      # http://localhost:3000
-```
-
-That's the whole bootstrap. `npm run setup` is idempotent, so it's also safe to
-re-run after pulling changes. If you only changed core code (not the schema),
-`npm run sync` alone is enough; run `npm run db:push` too if the schema changed.
-
-To wipe a project's data and reseed from scratch:
-
-```bash
-rm -f projects/mosaic-learn/data/dev.db && npm --workspace @mosaic/project-mosaic-learn run setup
-```
-
-## Commentary (owner notes)
-
-Every asset (article, blog, video, product, link, book) has an optional
-**commentary** field — the site owner's own take, written in markdown. It's
-distinct from `summary` (a neutral one-line description) and `body` (full
-long-form, articles/blog only).
-
-- **Author it** in the item editor ("Your commentary") or in the create flows
-  for links, products, and blog posts.
-- **Item page:** always shown as a themed "From the editor" callout above the body.
-- **Home cards:** controlled by Settings → Content → *Show your commentary on
-  home-page cards* — `Hidden` (default), `Excerpt` (short note + length), or
-  `Full`. Each home section can override this in the Home-page builder
-  (Default / Hidden / Excerpt / Full).
-- **Editor's notes band:** flag an item with "Feature this commentary" and add
-  the *Editor's notes* section (in the default layout) to spotlight your picks
-  with fully-rendered commentary.
-- Commentary is also indexed by search (low weight).
-
-## How sharing works
-
-A project's `src/app` is **generated** from core by `npm run sync`
-(`core/scripts/sync-routes.mjs`): each route is a one-line re-export of the
-corresponding `@mosaic/core` route, so all projects run identical core features.
-Next transpiles core via `transpilePackages: ["@mosaic/core"]`.
-
-The schema (`schema.prisma`) and `src/app/globals.css` are also copied from core
-on sync. The project owns only: `.env`, `src/app/layout.tsx`, its seed, its
-`data/` (SQLite) and `public/uploads/`.
-
-## Overriding core in a project
-
-To customize a route/file for one project, edit the generated file and add a
-`// @override` comment at the top. `npm run sync` will then leave it untouched
-while still updating everything else.
-
-## Update core, refresh projects
-
-```bash
-# edit anything under core/ ...
-cd projects/<name> && npm run sync     # pull the latest stubs/schema/globals
-npm run db:push                        # if the schema changed
-npm run dev
-```
-
-## Add a new project
-
-Copy an existing project folder, then:
-1. Change `name` in its `package.json` and the branding in `.env`.
-2. Give it its own `SESSION_SECRET` and (optionally) a custom `prisma/seed.ts`.
-3. `npm install` (root) → `cd projects/<name>` → `npm run setup` → `npm run dev`.
-
-## Runtime data (sharded per project)
-
-Each project keeps its own SQLite database at `projects/<name>/data/dev.db` and
-uploads at `projects/<name>/public/uploads/`. For PostgreSQL, set
-`DATABASE_PROVIDER=postgresql` + a Postgres `DATABASE_URL` in the project `.env`
-(see `core/scripts/set-provider.mjs`).
+- [**docs/codelabs/**](docs/codelabs/) — build-it walkthroughs for each kind of site.
+- [**docs/CODEBASE_GUIDE.md**](docs/CODEBASE_GUIDE.md) — architecture tour and a "where do I look for…?" map.
+- [**docs/CODELAB.md**](docs/CODELAB.md) — a developer-oriented hands-on tour.
 
 ## Tests
 
@@ -121,5 +146,10 @@ uploads at `projects/<name>/public/uploads/`. For PostgreSQL, set
 npm test        # runs the core Vitest suite
 ```
 
-See **CODEBASE_GUIDE.md** for an architecture tour and **CODELAB.md** for a
-hands-on walkthrough (paths there refer to the code now living in `core/`).
+## License
+
+[MIT](LICENSE) © 2026 Nate D
+
+---
+
+Built with Next.js, TypeScript, Prisma, and Tailwind CSS.
