@@ -1,0 +1,9 @@
+/node_modules
+/.next
+/data
+/public/uploads/*
+!/public/uploads/.gitkeep
+next-env.d.ts
+# Route stubs, schema and globals are generated from core by `npm run sync`.
+/schema.prisma
+/src/app/globals.css

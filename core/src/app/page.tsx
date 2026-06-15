@@ -12,6 +12,7 @@ import { getSettings, type HomeSection } from "../lib/settings";
 import { homeTags, listTags } from "../lib/taxonomy";
 import { isItemType, type ItemType } from "../lib/types";
 import Rail from "../components/Rail";
+import TopicBrowser from "../components/TopicBrowser";
 import Band from "../components/Band";
 import ItemCard from "../components/ItemCard";
 import FilterSidebar from "../components/FilterSidebar";
@@ -76,7 +77,7 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
     if (!sec.enabled) return null;
     switch (sec.kind) {
       case "new":
-        return <Rail key={sec.id} title={sec.title || "New releases"} items={sec.limit ? newest.slice(0, sec.limit) : newest} commentaryMode={sec.commentary || cm} />;
+        return <Rail key={sec.id} title={sec.title || "New releases"} items={sec.limit ? newest.slice(0, sec.limit) : newest} commentaryMode={sec.commentary || cm} autoScroll />;
       case "featured":
         return <Rail key={sec.id} title={sec.title || "Featured"} items={sec.limit ? featured.slice(0, sec.limit) : featured} commentaryMode={sec.commentary || cm} />;
       case "collections":
@@ -97,11 +98,9 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         return <Rail key={sec.id} title={sec.title || TYPE_PLURAL[t]} href={href} items={shown} commentaryMode={sec.commentary || cm} />;
       }
       case "topics": {
-        // Show a content rail per topic. Topics flagged "show on home" appear,
-        // and the default ("catch-all") topic is always included automatically.
-        const def = allTags.find((t) => t.isDefault);
-        const topicsToShow = [...homeTagList];
-        if (def && !topicsToShow.some((t) => t.id === def.id)) topicsToShow.unshift(def);
+        // Only topics flagged "show on home" (Admin → Topics) appear as tabs.
+        // If the default ("catch-all") topic is among them, it's selected first.
+        const topicsToShow = homeTagList;
         if (topicsToShow.length === 0) return null;
         const perTopic = sec.limit && sec.limit > 0 ? sec.limit : 8;
         // Tiled grid: columns are configurable (default 4). Static class strings
@@ -115,35 +114,23 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
           6: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6",
         };
         const cols = sec.cols && colsClass[sec.cols] ? sec.cols : 4;
-        const blocksForTopics = topicsToShow
-          .map((t) => {
-            const tItems = t.isDefault ? all : all.filter((i) => i.tags.some((tg) => tg.tag.slug === t.slug));
-            if (tItems.length === 0) return null;
-            const href = tItems.length > perTopic ? `/topics/${t.slug}` : undefined;
-            const tcm = sec.commentary || cm;
-            return (
-              <section key={t.id} className="mb-10">
-                <div className="mb-3 flex items-baseline justify-between">
-                  <h2 className="text-xl font-bold">{t.name}</h2>
-                  {href && (
-                    <Link href={href} className="text-sm font-medium text-brand hover:underline">See all →</Link>
-                  )}
-                </div>
-                <div className={`grid gap-5 ${colsClass[cols]}`}>
-                  {tItems.slice(0, perTopic).map((item) => (
-                    <ItemCard key={item.id} item={item} commentaryMode={tcm} commentaryChars={settings.commentaryExcerptChars} />
-                  ))}
-                </div>
-              </section>
-            );
-          })
-          .filter(Boolean);
-        if (blocksForTopics.length === 0) return null;
-        return (
-          <div key={sec.id}>
-            {sec.title && <h2 className="mb-4 text-xl font-bold">{sec.title}</h2>}
-            {blocksForTopics}
+        const tcm = sec.commentary || cm;
+        // Build a panel (grid) per topic; the default topic is the catch-all.
+        const withItems = topicsToShow
+          .map((t) => ({ t, items: t.isDefault ? all : all.filter((i) => i.tags.some((tg) => tg.tag.slug === t.slug)) }))
+          .filter((x) => x.items.length > 0);
+        if (withItems.length === 0) return null;
+        const tabs = withItems.map((x) => ({ name: x.t.name, slug: x.t.slug, seeAll: x.items.length > perTopic }));
+        const panels = withItems.map((x) => (
+          <div className={`grid gap-5 ${colsClass[cols]}`}>
+            {x.items.slice(0, perTopic).map((item) => (
+              <ItemCard key={item.id} item={item} commentaryMode={tcm} commentaryChars={settings.commentaryExcerptChars} />
+            ))}
           </div>
+        ));
+        const initial = Math.max(0, withItems.findIndex((x) => x.t.isDefault));
+        return (
+          <TopicBrowser key={sec.id} title={sec.title || "Browse by topic"} tabs={tabs} panels={panels} initial={initial} />
         );
       }
       case "text":
@@ -157,12 +144,12 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         return (sec.title || sec.body || sec.image || sec.footer) ? (
           <section key={sec.id} className="mb-12 text-center">
             {sec.title && <h2 className="text-3xl font-bold sm:text-4xl">{sec.title}</h2>}
-            {sec.body && <p className="mx-auto mt-4 max-w-2xl whitespace-pre-line text-slate-600">{sec.body}</p>}
+            {sec.body && <p className="mx-auto mt-4 max-w-2xl whitespace-pre-line opacity-80">{sec.body}</p>}
             {sec.image && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={sec.image} alt={sec.title || ""} className="mx-auto mt-8 w-full max-w-4xl rounded-2xl object-cover shadow-sm" />
             )}
-            {sec.footer && <p className="mx-auto mt-6 max-w-2xl text-sm text-slate-500">{sec.footer}</p>}
+            {sec.footer && <p className="mx-auto mt-6 max-w-2xl text-sm opacity-70">{sec.footer}</p>}
           </section>
         ) : null;
       case "testimonials":
@@ -271,21 +258,33 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         );
         const copy = (
           <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white/70">{settings.siteName}</p>
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{settings.tagline}</h1>
-            {settings.heroSubtitle && <p className="mt-3 max-w-md text-white/80">{settings.heroSubtitle}</p>}
+            {settings.heroEmphasis === "tagline" ? (
+              <>
+                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white/70">{settings.siteName}</p>
+                <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{settings.tagline}</h1>
+              </>
+            ) : (
+              <>
+                <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">{settings.siteName}</h1>
+                {settings.tagline && <p className="mt-3 max-w-xl text-lg font-medium text-white/90 sm:text-2xl">{settings.tagline}</p>}
+              </>
+            )}
+            {settings.heroSubtitle && <p className="mt-3 max-w-md text-white/75">{settings.heroSubtitle}</p>}
             {ctas}
           </div>
         );
+        // Hero vertical size. Taller options reveal more of a full-bleed image.
+        const heroPadImg = { standard: "py-16 sm:py-24", tall: "py-24 sm:py-36", xl: "py-36 sm:py-52" }[settings.heroHeight] || "py-16 sm:py-24";
+        const heroPadGrad = { standard: "py-12 sm:py-16", tall: "py-20 sm:py-28", xl: "py-28 sm:py-44" }[settings.heroHeight] || "py-12 sm:py-16";
         if (imageHero) {
           return (
-            <Band bgImage={settings.heroImage} overlay={settings.heroOverlay} flush className="py-16 sm:py-24">
+            <Band bgImage={settings.heroImage} overlay={settings.heroOverlay} flush className={heroPadImg}>
               <div className="max-w-2xl">{copy}</div>
             </Band>
           );
         }
         return (
-          <Band tone="hero" flush className="py-12 sm:py-16">
+          <Band tone="hero" flush className={heroPadGrad}>
             <div className="grid gap-6 lg:grid-cols-2 lg:items-center">
               {copy}
               {sideImage && (
@@ -315,7 +314,7 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         )}
       </div>
 
-      {!filtering && (
+      {!filtering && settings.showAccountNav && (
         <Band tone="band" className="my-12 py-12 text-center">
           <h2 className="text-2xl font-bold">Create your free account and join the community</h2>
           <p className="mx-auto mt-2 max-w-xl opacity-80">Members unlock the full library and support new lessons.</p>

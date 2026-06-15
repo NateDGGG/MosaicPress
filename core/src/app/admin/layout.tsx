@@ -9,7 +9,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isOwner = hasRole(user, "owner");
 
   return (
-    <div>
+    // The admin UI is always a light surface — pin its color-scheme to light so a
+    // dark site theme (or a browser's auto-dark) doesn't render native controls
+    // (inputs, file-upload buttons) dark and low-contrast.
+    <div style={{ colorScheme: "light" }}>
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
         <span className="font-semibold text-slate-800">Admin</span>
         <span className="text-slate-300">/</span>

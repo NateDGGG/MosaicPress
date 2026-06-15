@@ -87,11 +87,20 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
         </div>
 
         {/* hero */}
-        <div className="flex items-center gap-3 px-4 py-5 text-white" style={heroStyle}>
+        <div className={`flex items-center gap-3 px-4 text-white ${s.heroHeight === "xl" ? "py-12" : s.heroHeight === "tall" ? "py-8" : "py-5"}`} style={heroStyle}>
           <div className="flex-1">
-            <div className="text-[9px] font-semibold uppercase tracking-wide text-white/70">{s.siteName}</div>
-            <div className="mt-1 text-base font-bold leading-snug" style={{ fontFamily: headFam }}>{s.tagline || "Your tagline here"}</div>
-            {s.heroSubtitle && <div className="mt-1 line-clamp-2 text-[10px] text-white/80">{s.heroSubtitle}</div>}
+            {s.heroEmphasis === "tagline" ? (
+              <>
+                <div className="text-[9px] font-semibold uppercase tracking-wide text-white/70">{s.siteName}</div>
+                <div className="mt-1 text-base font-bold leading-snug" style={{ fontFamily: headFam }}>{s.tagline || "Your tagline here"}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-extrabold leading-tight" style={{ fontFamily: headFam }}>{s.siteName || "Your site"}</div>
+                {s.tagline && <div className="mt-0.5 text-[11px] font-medium text-white/90">{s.tagline}</div>}
+              </>
+            )}
+            {s.heroSubtitle && <div className="mt-1 line-clamp-2 text-[10px] text-white/75">{s.heroSubtitle}</div>}
             <div className="mt-3 flex gap-2">
               {s.heroShowPrimaryCta && <span className="bg-white px-3 py-1 text-[10px] font-semibold" style={{ ...r(6), color: s.primaryColor }}>{s.heroCtaLabel || "Start exploring"}</span>}
               {s.heroCta2Label && <span className="border border-white/50 px-3 py-1 text-[10px] font-semibold text-white" style={r(6)}>{s.heroCta2Label}</span>}

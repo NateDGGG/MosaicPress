@@ -297,12 +297,25 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
           <option value="image">Full background image</option>
         </select>
 
+        <label className={label}>Hero height <InfoTip text="How tall the hero banner is. Taller options reveal more of a full-bleed background image so it isn’t cropped as much." /></label>
+        <select value={s.heroHeight} onChange={(e) => set("heroHeight", e.target.value as SiteSettings["heroHeight"])} className={`${field} mb-3 max-w-xs`}>
+          <option value="standard">Standard (default)</option>
+          <option value="tall">Tall</option>
+          <option value="xl">Extra tall</option>
+        </select>
+
+        <label className={label}>Hero emphasis <InfoTip text="Which line is the big heading in the hero: your site name (tagline shown beneath it) or your tagline (site name shown as a small label above)." /></label>
+        <select value={s.heroEmphasis} onChange={(e) => set("heroEmphasis", e.target.value as SiteSettings["heroEmphasis"])} className={`${field} mb-3 max-w-xs`}>
+          <option value="title">Site name is the title (default)</option>
+          <option value="tagline">Tagline is the headline</option>
+        </select>
+
         {s.heroLayout !== "gradient" && (
           <>
             <label className={label}>Hero image</label>
             <div className="mb-3 flex items-center gap-2">
               <input value={s.heroImage} onChange={(e) => set("heroImage", e.target.value)} placeholder="/uploads/… or https://…" className={field} />
-              <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+              <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 {heroUploading ? "…" : "Upload"}
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); }} />
               </label>
@@ -373,7 +386,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
         <label className={label}>Logo (falls back to initials when empty) <InfoTip text="Upload a logo to replace the text site-name in the header — the biggest single 'this is my brand' win. If empty, a two-letter monogram is shown instead." /></label>
         <div className="mb-3 flex items-center gap-2">
           <input value={s.logoImage} onChange={(e) => set("logoImage", e.target.value)} placeholder="/uploads/… or https://…" className={field} />
-          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             {imgBusy === "logoImage" ? "…" : "Upload"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadTo("logoImage", f); }} />
           </label>
@@ -402,7 +415,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
         <label className={label}>Favicon (browser tab icon) <InfoTip text="The little icon shown in browser tabs and bookmarks. A custom one makes your site recognizable among many open tabs." /></label>
         <div className="mb-3 flex items-center gap-2">
           <input value={s.faviconImage} onChange={(e) => set("faviconImage", e.target.value)} placeholder="/uploads/… or https://…" className={field} />
-          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             {imgBusy === "faviconImage" ? "…" : "Upload"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadTo("faviconImage", f); }} />
           </label>
@@ -431,6 +444,12 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
           </div>
         </div>
         <p className="mb-3 text-xs text-slate-400">Shown to logged-out visitors. The &ldquo;Membership&rdquo; nav link auto-hides when no plans exist.</p>
+
+        <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={s.showAccountNav} onChange={(e) => set("showAccountNav", e.target.checked)} />
+          Show the &ldquo;Sign in&rdquo; / account button
+          <InfoTip text="The header link that lets visitors sign in or reach their account. Turn it off if you don't use accounts, memberships, or logins — your header button above is unaffected." />
+        </label>
 
         <label className={label}>Corner style <InfoTip text="How rounded corners are site-wide (buttons, cards, inputs). Sharp feels precise/minimal, soft feels friendly/modern — a quick way to shift the whole personality." /></label>
         <select value={s.radius} onChange={(e) => set("radius", e.target.value as SiteSettings["radius"])} className={`${field} max-w-xs`}>
@@ -596,7 +615,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
                   <div className="flex items-center gap-2">
                     <input value={sec.image || ""} onChange={(e) => patchSection(i, { image: e.target.value })}
                       placeholder="Image URL (/uploads/… or https://…)" className={field} />
-                    <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                    <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                       {secImgBusy === sec.id ? "…" : "Upload"}
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadSectionImage(i, sec.id, f); }} />
                     </label>
@@ -937,7 +956,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
         <label className={label}>Default social share image (Open Graph) <InfoTip text="The picture shown when your pages are shared on social media or chat. A branded default makes links look polished and boosts click-through." /></label>
         <div className="mb-3 flex items-center gap-2">
           <input value={s.ogImage} onChange={(e) => set("ogImage", e.target.value)} placeholder="/uploads/… or https://…" className={field} />
-          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+          <label className="cursor-pointer whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             {imgBusy === "ogImage" ? "…" : "Upload"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadTo("ogImage", f); }} />
           </label>

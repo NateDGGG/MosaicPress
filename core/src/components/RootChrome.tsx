@@ -106,10 +106,10 @@ export default async function RootChrome({ children }: { children: React.ReactNo
             <div className="hidden items-center gap-4 text-sm font-medium md:flex" style={{ color: "rgb(var(--header-fg) / 0.9)" }}>
               {s.commerceEnabled && <CartButton />}
               {user ? (
-                <Link href="/account" className="rounded-md bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">Account</Link>
+                s.showAccountNav && <Link href="/account" className="rounded-md bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">Account</Link>
               ) : (
                 <>
-                  <Link href="/login" className="hover:text-white">Sign in</Link>
+                  {s.showAccountNav && <Link href="/login" className="hover:text-white">Sign in</Link>}
                   {s.headerCtaLabel && <Link href={s.headerCtaHref || "/join"} className="rounded-md bg-accent px-3 py-1.5 font-semibold text-white hover:opacity-90">{s.headerCtaLabel}</Link>}
                 </>
               )}
@@ -139,10 +139,10 @@ export default async function RootChrome({ children }: { children: React.ReactNo
                   {s.commerceEnabled && <Link href="/cart" className="rounded-md px-3 py-2.5 hover:bg-slate-100">Cart</Link>}
                   <div className="my-1 border-t border-slate-100" />
                   {user ? (
-                    <Link href="/account" className="rounded-md px-3 py-2.5 font-semibold text-brand hover:bg-slate-100">Account</Link>
+                    s.showAccountNav && <Link href="/account" className="rounded-md px-3 py-2.5 font-semibold text-brand hover:bg-slate-100">Account</Link>
                   ) : (
                     <>
-                      <Link href="/login" className="rounded-md px-3 py-2.5 hover:bg-slate-100">Sign in</Link>
+                      {s.showAccountNav && <Link href="/login" className="rounded-md px-3 py-2.5 hover:bg-slate-100">Sign in</Link>}
                       {s.headerCtaLabel && <Link href={s.headerCtaHref || "/join"} className="rounded-md px-3 py-2.5 font-semibold text-brand hover:bg-slate-100">{s.headerCtaLabel}</Link>}
                     </>
                   )}
@@ -185,7 +185,7 @@ export default async function RootChrome({ children }: { children: React.ReactNo
                 )}
               </div>
             )}
-            <div className={(s.footerColumns.length > 0 || s.footerSocial.length > 0) ? "border-t border-white/15 pt-4 opacity-80" : ""}>{s.footerText}</div>
+            <div className={`text-center ${(s.footerColumns.length > 0 || s.footerSocial.length > 0) ? "border-t border-white/15 pt-4 opacity-80" : ""}`}>{s.footerText}</div>
           </div>
         </footer>
       </body>

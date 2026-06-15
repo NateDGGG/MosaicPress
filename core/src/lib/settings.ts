@@ -32,6 +32,8 @@ export interface SiteSettings {
   heroImage: string;      // optional hero background/side image URL
   heroLayout: "gradient" | "image" | "split"; // gradient (default) | full image bg | text+image
   heroOverlay: number;    // 0–90 darken overlay % for the image layout (legibility)
+  heroHeight: "standard" | "tall" | "xl"; // hero banner vertical size
+  heroEmphasis: "title" | "tagline"; // which is the large heading: site name, or the tagline
   heroSource: "auto" | "item" | "none"; // what the hero showcases: latest/featured, a chosen item, or nothing
   heroItemSlug: string;   // when heroSource="item"
   heroShowPrimaryCta: boolean; // show/hide the primary hero button (e.g. "Watch the latest")
@@ -59,6 +61,7 @@ export interface SiteSettings {
   headerNavAlign: "right" | "center"; // desktop nav placement
   headerCtaLabel: string; // header button for logged-out visitors ("" hides it)
   headerCtaHref: string;
+  showAccountNav: boolean; // show the "Sign in" / "Account" header links
   radius: "sharp" | "rounded" | "soft"; // global corner-radius personality
   headerColor: string;     // explicit header background ("" = derived from primary)
   heroColor: string;       // explicit hero gradient base ("" = derived)
@@ -127,6 +130,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   heroImage: "",
   heroLayout: "gradient",
   heroOverlay: 45,
+  heroHeight: "standard",
+  heroEmphasis: "title",
   heroSource: "auto",
   heroShowPrimaryCta: true,
   heroItemSlug: "",
@@ -154,6 +159,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   headerNavAlign: "right",
   headerCtaLabel: "Join",
   headerCtaHref: "/join",
+  showAccountNav: true,
   radius: "rounded",
   headerColor: "",
   heroColor: "",
@@ -275,7 +281,7 @@ export function sectionPalette(s: SiteSettings) {
     secA: dark ? shade(s.primaryColor, 0.30) : tint(s.primaryColor, 0.93),
     secB: dark ? shade(s.accentColor, 0.30) : tint(s.accentColor, 0.93),
     // footer
-    footerBg: s.footerColor ? hexToRgbTriplet(s.footerColor) : (dark ? "3 6 16" : shade(s.primaryColor, 0.42)),
+    footerBg: s.footerColor ? hexToRgbTriplet(s.footerColor) : shade(s.primaryColor, dark ? 0.5 : 0.42),
     footerFg: "203 213 225",
   };
 }
