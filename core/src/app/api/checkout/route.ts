@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (lines.length === 0) return NextResponse.json({ error: "Cart is empty." }, { status: 400 });
 
   try {
-    const result = await createCheckout(lines, body.email);
+    const result = await createCheckout(lines, body.email, body.shipping);
     return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Checkout failed.";

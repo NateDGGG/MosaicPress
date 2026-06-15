@@ -55,6 +55,8 @@ model Item {
   presenter   Presenter? @relation(fields: [presenterId], references: [id])
   presenterId String?
   tags        ItemTag[]
+  level     String?  // difficulty: beginner | intermediate | advanced
+  progress  ItemProgress[]
 }
 
 // A presenter / host whose content can be browsed together.
@@ -76,6 +78,8 @@ model Tag {
   name      String
   isDefault Boolean   @default(false) // content with no topic falls under this one
   showOnHome Boolean  @default(true)  // show this topic on the home page
+  intro     String?   // optional topic intro shown atop the topic page
+  sortMode  String    @default("newest") // newest | oldest | manual
   items     ItemTag[]
 }
 
@@ -85,6 +89,7 @@ model ItemTag {
   tagId  String
   item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   itemId String
+  position Int   @default(0) // manual order within the topic (when sortMode=manual)
 
   @@unique([tagId, itemId])
 }
@@ -170,6 +175,7 @@ model User {
   passwordHash  String? // scrypt hash; null = not set yet
   createdAt     DateTime       @default(now())
   subscriptions Subscription[]
+  progress      ItemProgress[]
 }
 
 // A membership plan customers can subscribe to.
@@ -224,6 +230,14 @@ model Order {
   id            String      @id @default(cuid())
   status        String      @default("pending") // pending | paid | fulfilled | refunded | failed
   email         String?
+  // Shipping address (collected at checkout when the cart has physical goods).
+  shipName      String?
+  shipLine1     String?
+  shipLine2     String?
+  shipCity      String?
+  shipRegion    String?
+  shipPostal    String?
+  shipCountry   String?
   totalCents    Int         @default(0)
   currency      String      @default("USD")
   provider      String      @default("stripe") // stripe | stub
@@ -256,4 +270,18 @@ model BookMeta {
   publishedYear Int?
   publisher     String?
   buyUrl        String?  // outbound link to view/buy the book
+}
+
+// Per-user learning state for an item: bookmarked ("saved") and/or completed.
+model ItemProgress {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  saved     Boolean  @default(false)
+  completed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, itemId])
 }

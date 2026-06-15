@@ -11,7 +11,7 @@ export default async function SettingsPage() {
   const settings = await getSettings();
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-5xl">
       <h1 className="mb-1 text-2xl font-bold">Settings</h1>
       <p className="mb-5 text-sm text-slate-500">
         Configure your site&rsquo;s name, look, and commerce defaults. Changes apply site-wide.

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/db";
+import { setItemTags } from "../../../lib/taxonomy";
 import { createFromBookDraft, createFromDraft, itemInclude, uniqueSlug } from "../../../lib/items";
-import { isItemType } from "../../../lib/types";
+import { isItemType, isSource } from "../../../lib/types";
 import { requireRole } from "../../../lib/auth";
 
 export const runtime = "nodejs";
@@ -60,13 +61,20 @@ export async function POST(req: Request) {
     }
   }
 
-  // Path 2: create a hosted item.
+  // Path 2: create an item directly (hosted, or external product/link).
   const { type, title } = body || {};
   if (!isItemType(type)) {
     return NextResponse.json({ error: "Valid `type` required." }, { status: 400 });
   }
   if (!title || typeof title !== "string") {
     return NextResponse.json({ error: "`title` required." }, { status: 400 });
+  }
+  const source = isSource(body.source) ? body.source : "hosted";
+  const buyUrl: string | null = body.buyUrl || body.url || null;
+  let extDomain: string | null = null;
+  let extName: string | null = null;
+  if (source === "external" && buyUrl) {
+    try { extDomain = new URL(buyUrl).hostname.replace(/^www\./, ""); extName = extDomain.split(".")[0]; extName = extName.charAt(0).toUpperCase() + extName.slice(1); } catch {}
   }
 
   const slug = await uniqueSlug(title);
@@ -75,13 +83,18 @@ export async function POST(req: Request) {
       data: {
         slug,
         type,
-        source: "hosted",
+        source,
         title,
         summary: body.summary || null,
         coverImage: body.coverImage || null,
         author: body.author || null,
         status: "draft",
-        body: type === "article" ? body.body || null : null,
+        publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
+        body: type === "article" || type === "blog" ? body.body || null : null,
+        external:
+          source === "external" && buyUrl
+            ? { create: { url: buyUrl, sourceName: extName, sourceDomain: extDomain, favicon: extDomain ? `https://www.google.com/s2/favicons?domain=${extDomain}&sz=64` : null, embedAllowed: false, adapter: "manual" } }
+            : undefined,
         videoMeta:
           type === "video"
             ? { create: { playerUrl: body.playerUrl || null, duration: body.duration || null } }
@@ -93,7 +106,10 @@ export async function POST(req: Request) {
                   priceCents: body.priceCents ?? null,
                   currency: body.currency || "USD",
                   kind: body.kind || "physical",
+                  inventory: body.inventory ?? null,
                   fileUrl: body.fileUrl || null,
+                  buyUrl: source === "external" ? buyUrl : null,
+                  priceCheckedAt: source === "external" ? new Date() : null,
                 },
               }
             : undefined,
@@ -104,6 +120,11 @@ export async function POST(req: Request) {
       },
       include: itemInclude,
     });
+    if (Array.isArray(body.tagIds) && body.tagIds.length) {
+      await setItemTags(item.id, body.tagIds);
+      const withTags = await prisma.item.findUnique({ where: { id: item.id }, include: itemInclude });
+      return NextResponse.json({ item: withTags ?? item }, { status: 201 });
+    }
     return NextResponse.json({ item }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to create item.";

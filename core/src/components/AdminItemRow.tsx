@@ -16,12 +16,13 @@ type Row = {
 
 const TYPE_COLOR: Record<string, string> = {
   article: "bg-blue-100 text-blue-700",
+  blog: "bg-indigo-100 text-indigo-700",
   video: "bg-rose-100 text-rose-700",
   product: "bg-purple-100 text-purple-700",
   link: "bg-cyan-100 text-cyan-700",
 };
 
-export default function AdminItemRow({ item }: { item: Row }) {
+export default function AdminItemRow({ item, selected, onToggle }: { item: Row; selected: boolean; onToggle: (id: string) => void }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -45,7 +46,10 @@ export default function AdminItemRow({ item }: { item: Row }) {
   }
 
   return (
-    <tr className="border-t border-slate-100 hover:bg-slate-50">
+    <tr className={`border-t border-slate-100 hover:bg-slate-50 ${selected ? "bg-blue-50/60" : ""}`}>
+      <td className="px-3 py-2">
+        <input type="checkbox" checked={selected} onChange={() => onToggle(item.id)} aria-label={`Select ${item.title}`} />
+      </td>
       <td className="px-3 py-2">
         <Link href={`/admin/items/${item.id}`} className="font-medium text-slate-800 hover:text-brand">
           {item.title}

@@ -28,15 +28,107 @@ export async function getTagBySlug(slug: string) {
   return prisma.tag.findUnique({ where: { slug } });
 }
 
-export async function tagItems(tagId: string, opts?: { publishedOnly?: boolean }) {
+export async function tagItems(
+  tagId: string,
+  opts?: { publishedOnly?: boolean; sortMode?: string }
+) {
+  const sortMode = opts?.sortMode || "newest";
   const links = await prisma.itemTag.findMany({
     where: { tagId },
     include: { item: { include: itemInclude } },
+    ...(sortMode === "manual" ? { orderBy: { position: "asc" } } : {}),
   });
-  return links
+  const items = links
     .map((l) => l.item)
-    .filter((it) => (opts?.publishedOnly ? it.status === "published" : true))
-    .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+    .filter((it) => (opts?.publishedOnly ? it.status === "published" : true));
+  if (sortMode === "newest") {
+    items.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+  } else if (sortMode === "oldest") {
+    items.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
+  }
+  // manual: preserve link order (already ordered by position)
+  return items;
+}
+
+// Update a topic's intro copy and/or its sort mode.
+export async function setTopicMeta(
+  id: string,
+  data: { intro?: string; sortMode?: string }
+) {
+  const patch: { intro?: string; sortMode?: string } = {};
+  if (typeof data.intro === "string") patch.intro = data.intro;
+  if (typeof data.sortMode === "string" && ["newest", "oldest", "manual"].includes(data.sortMode)) {
+    patch.sortMode = data.sortMode;
+  }
+  return prisma.tag.update({ where: { id }, data: patch });
+}
+
+// Persist a manual ordering of a topic's items (array of itemIds in order).
+export async function reorderTopicItems(tagId: string, itemIds: string[]) {
+  await Promise.all(
+    itemIds.map((itemId, i) =>
+      prisma.itemTag.updateMany({ where: { tagId, itemId }, data: { position: i } })
+    )
+  );
+}
+
+// Items related to the given one — shared topics and/or same presenter, ranked.
+type RelItem = { id: string; presenterId: string | null; tags: { tagId: string }[] };
+export async function relatedItems(item: RelItem, limit = 6) {
+  const tagIds = item.tags.map((t) => t.tagId);
+  const presenterId = item.presenterId;
+  if (tagIds.length === 0 && !presenterId) return [];
+  const or: any[] = [];
+  if (tagIds.length) or.push({ tags: { some: { tagId: { in: tagIds } } } });
+  if (presenterId) or.push({ presenterId });
+  const candidates = await prisma.item.findMany({
+    where: { status: "published", id: { not: item.id }, OR: or },
+    include: itemInclude,
+    take: limit * 4,
+  });
+  return candidates
+    .map((c) => {
+      let score = 0;
+      if (presenterId && c.presenterId === presenterId) score += 2;
+      score += c.tags.filter((t) => tagIds.includes(t.tagId)).length;
+      return { c, score };
+    })
+    .sort((a, b) => b.score - a.score || (b.c.publishedAt?.getTime() ?? 0) - (a.c.publishedAt?.getTime() ?? 0))
+    .slice(0, limit)
+    .map((s) => s.c);
+}
+
+// The natural "up next" item: next in a collection this item belongs to,
+// else the next item in its primary topic's order.
+type NextSrc = { id: string; tags: { tagId: string }[] };
+export async function nextItem(item: NextSrc) {
+  const ci = await prisma.collectionItem.findFirst({
+    where: { itemId: item.id },
+    include: { collection: true },
+  });
+  if (ci) {
+    const siblings = await prisma.collectionItem.findMany({
+      where: { collectionId: ci.collectionId },
+      orderBy: { position: "asc" },
+      include: { item: { include: itemInclude } },
+    });
+    const idx = siblings.findIndex((sb) => sb.itemId === item.id);
+    for (let j = idx + 1; j < siblings.length; j++) {
+      if (siblings[j].item.status === "published") {
+        return { item: siblings[j].item, label: `Next in ${ci.collection.title}` };
+      }
+    }
+  }
+  const primaryTagId = item.tags[0]?.tagId;
+  if (primaryTagId) {
+    const tag = await prisma.tag.findUnique({ where: { id: primaryTagId } });
+    const ordered = await tagItems(primaryTagId, { publishedOnly: true, sortMode: tag?.sortMode });
+    const idx = ordered.findIndex((i) => i.id === item.id);
+    if (idx >= 0 && idx + 1 < ordered.length) {
+      return { item: ordered[idx + 1], label: `Next in ${tag?.name}` };
+    }
+  }
+  return null;
 }
 
 export async function uniquePresenterSlug(name: string) {

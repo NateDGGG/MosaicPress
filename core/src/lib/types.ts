@@ -1,6 +1,6 @@
 // Allowed values for the String "enum" columns (SQLite has no native enums).
 
-export const ITEM_TYPES = ["article", "video", "product", "link", "book"] as const;
+export const ITEM_TYPES = ["article", "blog", "video", "product", "link", "book"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
 export const SOURCES = ["hosted", "external"] as const;
@@ -44,6 +44,7 @@ export interface NormalizedDraft {
 
 export const TYPE_LABELS: Record<ItemType, string> = {
   article: "Article",
+  blog: "Blog post",
   video: "Video",
   product: "Product",
   link: "Link",
@@ -55,6 +56,7 @@ export function actionLabel(type: ItemType, source: Source, sourceName?: string 
   if (source === "hosted") {
     switch (type) {
       case "article": return "Read";
+      case "blog": return "Read";
       case "video": return "Watch";
       case "product": return "Buy";
       case "link": return "Open";
@@ -64,6 +66,7 @@ export function actionLabel(type: ItemType, source: Source, sourceName?: string 
   const where = sourceName || "source";
   switch (type) {
     case "article": return `Read on ${where}`;
+    case "blog": return `Read on ${where}`;
     case "video": return `Watch on ${where}`;
     case "product": return `Buy on ${where}`;
     case "link": return `Open ${where}`;

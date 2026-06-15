@@ -9,6 +9,7 @@ export interface CartLine {
   unitCents: number;
   currency: string;
   coverImage?: string;
+  kind?: string; // "physical" | "digital" — drives whether shipping is needed
   quantity: number;
 }
 

@@ -128,6 +128,31 @@ export function renderReceipt(opts: {
   return { subject: `Your ${opts.siteName} order (${opts.orderId.slice(0, 8)})`, html };
 }
 
+export function renderShipped(opts: {
+  siteName: string;
+  orderId: string;
+  lines: { title: string; quantity: number }[];
+  ship?: { name?: string | null; line1?: string | null; line2?: string | null; city?: string | null; region?: string | null; postal?: string | null; country?: string | null };
+  statusUrl?: string;
+}): { subject: string; html: string } {
+  const items = opts.lines
+    .map((l) => `<li style="padding:2px 0">${escapeHtml(l.title)} × ${l.quantity}</li>`)
+    .join("");
+  const a = opts.ship;
+  const addr = a
+    ? `<p style="color:#64748b;margin:12px 0 0">Shipping to:<br>${[a.name, a.line1, a.line2, [a.city, a.region, a.postal].filter(Boolean).join(", "), a.country].filter(Boolean).map((x) => escapeHtml(String(x))).join("<br>")}</p>`
+    : "";
+  const html = `
+  <div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0f172a">
+    <h2 style="margin:0 0 4px">Your order has shipped \u{1F4E6}</h2>
+    <p style="color:#64748b;margin:0 0 16px">${escapeHtml(opts.siteName)} \u00B7 Order ${opts.orderId.slice(0, 8)}</p>
+    <ul style="padding-left:18px;margin:0">${items}</ul>
+    ${addr}
+    ${opts.statusUrl ? `<p style="margin-top:16px"><a href="${opts.statusUrl}" style="color:#1d4ed8">Track your order \u2192</a></p>` : ""}
+  </div>`;
+  return { subject: `Your ${opts.siteName} order has shipped (${opts.orderId.slice(0, 8)})`, html };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string)

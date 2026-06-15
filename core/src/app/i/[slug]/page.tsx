@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getItemBySlug, priceFormat, durationFormat } from "../../../lib/items";
+import { getItemBySlug, priceFormat, durationFormat, applyAffiliate, readTimeLabel, LEVEL_LABELS } from "../../../lib/items";
+import { getSettings } from "../../../lib/settings";
 import { actionLabel, type ItemType, type Source, TYPE_LABELS } from "../../../lib/types";
 import AddToCartButton from "../../../components/AddToCartButton";
+import ItemCard from "../../../components/ItemCard";
+import ItemActions from "../../../components/ItemActions";
+import { relatedItems, nextItem } from "../../../lib/taxonomy";
+import { getProgress } from "../../../lib/progress";
 import BlockRenderer from "../../../components/BlockRenderer";
+import BlogRenderer from "../../../components/BlogRenderer";
 import { getSessionUser, isStaff } from "../../../lib/auth";
 import { isActiveMember } from "../../../lib/membership";
 
@@ -83,8 +89,16 @@ export default async function ItemPage({ params }: { params: { slug: string } })
   const type = item.type as ItemType;
   const source = item.source as Source;
   const ext = item.external;
+  const settings = await getSettings();
   const action = actionLabel(type, source, ext?.sourceName);
   const price = priceFormat(item.productMeta?.priceCents, item.productMeta?.currency);
+
+  const [upNext, relatedAll, progress] = await Promise.all([
+    nextItem(item),
+    relatedItems(item, 6),
+    viewer ? getProgress(viewer.id, item.id) : Promise.resolve(null),
+  ]);
+  const related = relatedAll.filter((r) => r.id !== upNext?.item.id).slice(0, 6);
 
   return (
     <article className="mx-auto max-w-3xl">
@@ -98,6 +112,12 @@ export default async function ItemPage({ params }: { params: { slug: string } })
 
       <h1 className="mb-2 text-3xl font-bold leading-tight">{item.title}</h1>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        {item.level && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{LEVEL_LABELS[item.level] || item.level}</span>
+        )}
+        {readTimeLabel(item) && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{readTimeLabel(item)}</span>
+        )}
         {item.presenter ? (
           <Link href={`/presenters/${item.presenter.slug}`} className="font-medium text-brand hover:underline">
             {item.presenter.name}
@@ -115,6 +135,10 @@ export default async function ItemPage({ params }: { params: { slug: string } })
           </span>
         )}
       </div>
+
+      {viewer && (
+        <ItemActions itemId={item.id} initialSaved={!!progress?.saved} initialCompleted={!!progress?.completed} />
+      )}
 
       {/* ---------- VIDEO ---------- */}
       {type === "video" && (
@@ -154,18 +178,33 @@ export default async function ItemPage({ params }: { params: { slug: string } })
             {price && <div className="mb-2 text-2xl font-bold">{price}</div>}
             {item.summary && <p className="mb-4 text-slate-600">{item.summary}</p>}
             {source === "hosted" ? (
-              <AddToCartButton
-                line={{
-                  itemId: item.id,
-                  title: item.title,
-                  unitCents: item.productMeta?.priceCents || 0,
-                  currency: item.productMeta?.currency || "USD",
-                  coverImage: item.coverImage || undefined,
-                }}
-              />
+              settings.commerceEnabled ? (
+                <div>
+                  {(() => {
+                    const inv = settings.trackInventory ? item.productMeta?.inventory : null;
+                    if (inv == null) return null;
+                    if (inv <= 0) return <p className="mb-2 text-sm font-semibold text-red-600">Sold out</p>;
+                    if (inv <= settings.lowStockThreshold) return <p className="mb-2 text-sm font-semibold text-amber-600">Only {inv} left</p>;
+                    return <p className="mb-2 text-sm text-emerald-600">In stock</p>;
+                  })()}
+                  <AddToCartButton
+                    soldOut={settings.trackInventory && item.productMeta?.inventory != null && item.productMeta.inventory <= 0}
+                    line={{
+                      itemId: item.id,
+                      title: item.title,
+                      unitCents: item.productMeta?.priceCents || 0,
+                      currency: item.productMeta?.currency || "USD",
+                      coverImage: item.coverImage || undefined,
+                      kind: item.productMeta?.kind || "physical",
+                    }}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Not currently for sale.</p>
+              )
             ) : (
               <a
-                href={item.productMeta?.buyUrl || ext?.url}
+                href={applyAffiliate(item.productMeta?.buyUrl || ext?.url, settings.affiliateTag)}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
                 className="rounded-lg bg-brand px-5 py-2.5 text-center font-semibold text-white hover:bg-brand-dark"
@@ -210,26 +249,46 @@ export default async function ItemPage({ params }: { params: { slug: string } })
         </div>
       )}
 
-      {/* ---------- ARTICLE / LINK cover ---------- */}
-      {(type === "article" || type === "link") && item.coverImage && (
+      {/* ---------- ARTICLE / BLOG / LINK cover ---------- */}
+      {(type === "article" || type === "blog" || type === "link") && item.coverImage && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.coverImage} alt="" className="mb-6 aspect-video w-full rounded-xl object-cover" />
       )}
 
       {/* ---------- BODY ---------- */}
-      {type === "article" && source === "hosted" && item.body ? (
+      {type === "blog" ? (
+        <BlogRenderer body={item.body} />
+      ) : type === "article" && source === "hosted" && item.body ? (
         <BlockRenderer body={item.body} />
       ) : type === "article" && source === "external" ? (
         <div className="prose-body">
           {ext?.readerExcerpt && <p className="text-slate-700">{ext.readerExcerpt}</p>}
           {item.summary && !ext?.readerExcerpt && <p className="text-slate-700">{item.summary}</p>}
         </div>
+      ) : type === "link" ? (
+        item.summary && <p className="prose-body whitespace-pre-line text-slate-700">{item.summary}</p>
       ) : (
         item.summary && <p className="prose-body text-slate-700">{item.summary}</p>
       )}
 
+      {/* ---------- LINK: date + outbound (hosted or external) ---------- */}
+      {type === "link" && (item.linkMeta?.url || ext?.url) && (
+        <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6">
+          <a href={item.linkMeta?.url || ext?.url || "#"} target="_blank" rel="noopener noreferrer nofollow"
+            className="rounded-lg bg-brand px-5 py-2.5 font-semibold text-white hover:bg-brand-dark">
+            Open link ↗
+          </a>
+          {item.publishedAt && (
+            <span className="text-sm text-slate-400">
+              {new Date(item.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            </span>
+          )}
+          {(() => { try { const h = new URL(item.linkMeta?.url || ext?.url || "").hostname.replace(/^www\./, ""); return <span className="text-sm text-slate-400">· {h}</span>; } catch { return null; } })()}
+        </div>
+      )}
+
       {/* ---------- Source attribution + outbound action (external) ---------- */}
-      {source === "external" && ext?.url && (
+      {source === "external" && ext?.url && type !== "product" && type !== "book" && type !== "link" && (
         <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6">
           <a
             href={ext.url}
@@ -241,6 +300,37 @@ export default async function ItemPage({ params }: { params: { slug: string } })
           </a>
           <Attribution url={ext.url} name={ext.sourceName} favicon={ext.favicon} />
         </div>
+      )}
+
+      {/* ---------- UP NEXT + RELATED ---------- */}
+      {(upNext || related.length > 0) && (
+        <section className="mt-12 border-t border-slate-200 pt-8">
+          {upNext && (
+            <Link
+              href={`/i/${upNext.item.slug}`}
+              className="mb-8 flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand hover:shadow-sm"
+            >
+              {upNext.item.coverImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={upNext.item.coverImage} alt="" className="h-20 w-32 shrink-0 rounded-lg object-cover" />
+              )}
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-brand">{upNext.label}</div>
+                <div className="truncate font-semibold text-slate-900">{upNext.item.title}</div>
+                {upNext.item.summary && <p className="line-clamp-1 text-sm text-slate-500">{upNext.item.summary}</p>}
+              </div>
+              <span className="ml-auto text-xl text-brand">→</span>
+            </Link>
+          )}
+          {related.length > 0 && (
+            <>
+              <h2 className="mb-4 text-xl font-bold">Related</h2>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {related.map((r) => <ItemCard key={r.id} item={r} />)}
+              </div>
+            </>
+          )}
+        </section>
       )}
     </article>
   );

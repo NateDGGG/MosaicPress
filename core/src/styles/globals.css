@@ -42,9 +42,61 @@ body {
   @apply text-brand underline;
 }
 
+
+.prose-body h3 { @apply mt-6 mb-2 text-lg font-semibold; }
+.prose-body h1 { @apply mt-8 mb-3 text-2xl font-bold; }
+.prose-body h4 { @apply mt-4 mb-2 font-semibold; }
+.prose-body ul { @apply mb-4 list-disc pl-6; }
+.prose-body ol { @apply mb-4 list-decimal pl-6; }
+.prose-body li { @apply mb-1; }
+.prose-body blockquote { @apply my-4 border-l-4 border-brand pl-4 italic text-slate-600; }
+.prose-body pre { @apply my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100; }
+.prose-body img { @apply my-5 w-full rounded-xl; }
+.prose-body hr { @apply my-6 border-slate-200; }
+
 /* WYSIWYG editable area placeholder */
 .rich-editable:empty::before {
   content: attr(data-placeholder);
   color: #94a3b8;
+}
+
+/* ---- Accessibility ---- */
+/* Visible keyboard focus for all interactive elements. */
+:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* Don't show the focus ring for mouse clicks that aren't keyboard focus. */
+:focus:not(:focus-visible) { outline: none; }
+
+/* Skip-to-content link: hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 100;
+  background: rgb(var(--brand));
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 8px; }
+
+/* Hide the default disclosure triangle on <summary> menus. */
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

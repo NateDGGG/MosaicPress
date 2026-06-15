@@ -38,13 +38,13 @@ export default function JoinPage() {
       <p className="mb-6 text-sm text-slate-500">Join to subscribe and unlock members-only content.</p>
       <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-white p-5">
         <label className="mb-1 block text-xs font-medium text-slate-500">Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)}
+        <input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none" />
         <label className="mb-1 block text-xs font-medium text-slate-500">Email</label>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+        <input type="email" required aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none" />
         <label className="mb-1 block text-xs font-medium text-slate-500">Password (8+ chars)</label>
-        <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+        <input type="password" required aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)}
           className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none" />
         {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <button type="submit" disabled={busy}

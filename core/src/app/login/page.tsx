@@ -40,6 +40,7 @@ export default function LoginPage() {
         <input
           type="email"
           required
+          aria-label="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none"
@@ -48,6 +49,7 @@ export default function LoginPage() {
         <input
           type="password"
           required
+          aria-label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand focus:outline-none"

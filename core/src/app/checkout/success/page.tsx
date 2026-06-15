@@ -51,7 +51,10 @@ export default async function SuccessPage({ searchParams }: { searchParams: { or
         </div>
       )}
 
-      <Link href="/" className="text-brand hover:underline">Continue browsing →</Link>
+      <div className="flex justify-center gap-4">
+        {order && <Link href={`/orders/${order.id}`} className="text-brand hover:underline">View order status →</Link>}
+        <Link href="/" className="text-brand hover:underline">Continue browsing →</Link>
+      </div>
     </div>
   );
 }

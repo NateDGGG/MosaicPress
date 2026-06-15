@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "../lib/db";
 import { itemInclude, listItems } from "../lib/items";
-import { getSettings } from "../lib/settings";
+import { getSettings, type HomeSection } from "../lib/settings";
 import { homeTags, listTags } from "../lib/taxonomy";
-import { ITEM_TYPES, TYPE_LABELS, isItemType, type ItemType } from "../lib/types";
+import { isItemType, type ItemType } from "../lib/types";
 import Rail from "../components/Rail";
 import Band from "../components/Band";
 import ItemCard from "../components/ItemCard";
@@ -12,7 +12,7 @@ import FilterSidebar from "../components/FilterSidebar";
 export const dynamic = "force-dynamic";
 
 const TYPE_PLURAL: Record<ItemType, string> = {
-  article: "Articles", video: "Videos", product: "Shop", link: "Links", book: "Books",
+  article: "Articles", blog: "Blog", video: "Videos", product: "Shop", link: "Links", book: "Books",
 };
 
 export default async function HomePage({ searchParams }: { searchParams: { type?: string; topic?: string } }) {
@@ -45,6 +45,57 @@ export default async function HomePage({ searchParams }: { searchParams: { type?
     </div>
   );
 
+  // Render one configured home section. Order + visibility come from settings.
+  const renderSection = (sec: HomeSection): React.ReactNode => {
+    if (!sec.enabled) return null;
+    switch (sec.kind) {
+      case "new":
+        return <Rail key={sec.id} title={sec.title || "New releases"} items={sec.limit ? newest.slice(0, sec.limit) : newest} />;
+      case "featured":
+        return <Rail key={sec.id} title={sec.title || "Featured"} items={sec.limit ? featured.slice(0, sec.limit) : featured} />;
+      case "collections":
+        return (
+          <div key={sec.id}>
+            {collections.map((c) => (
+              <Rail key={c.id} title={c.title} href={`/collections/${c.slug}`}
+                items={c.items.map((ci) => ci.item).filter((it) => it.status === "published")} />
+            ))}
+          </div>
+        );
+      case "type": {
+        const t = sec.itemType;
+        if (!isItemType(t)) return null;
+        const ofType = all.filter((i) => i.type === t);
+        const shown = sec.limit ? ofType.slice(0, sec.limit) : ofType;
+        const href = t === "blog" ? "/blog" : t === "link" ? "/links" : `/?type=${t}`;
+        return <Rail key={sec.id} title={sec.title || TYPE_PLURAL[t]} href={href} items={shown} />;
+      }
+      case "topics":
+        return homeTagList.length > 0 ? (
+          <section key={sec.id} className="mb-10">
+            <h2 className="mb-3 text-xl font-bold">{sec.title || "Browse by topic"}</h2>
+            <div className="flex flex-wrap gap-2">
+              {homeTagList.map((t) => (
+                <Link key={t.id} href={`/topics/${t.slug}`}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:border-brand hover:text-brand">
+                  {t.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null;
+      case "text":
+        return (sec.title || sec.body) ? (
+          <section key={sec.id} className="mb-10 rounded-xl border border-slate-200 bg-white p-6">
+            {sec.title && <h2 className="mb-2 text-xl font-bold">{sec.title}</h2>}
+            {sec.body && <div className="prose-body whitespace-pre-line text-slate-700">{sec.body}</div>}
+          </section>
+        ) : null;
+      default:
+        return null;
+    }
+  };
+
   // The main content region (everything below the hero, inside the sidebar column if shown).
   let main: React.ReactNode;
   if (filtering) {
@@ -57,23 +108,10 @@ export default async function HomePage({ searchParams }: { searchParams: { type?
         {filtered.length ? grid(filtered) : <p className="text-slate-500">Nothing here yet.</p>}
       </div>
     );
-  } else if (settings.groupByType) {
-    main = (
-      <div>
-        {ITEM_TYPES.map((t) => (
-          <Rail key={t} title={TYPE_PLURAL[t]} href={`/?type=${t}`} items={all.filter((i) => i.type === t)} />
-        ))}
-      </div>
-    );
   } else {
     main = (
       <div>
-        <Rail title="New releases" items={newest} />
-        <Rail title="Featured" items={featured} />
-        {collections.map((c) => (
-          <Rail key={c.id} title={c.title} href={`/collections/${c.slug}`}
-            items={c.items.map((ci) => ci.item).filter((it) => it.status === "published")} />
-        ))}
+        {settings.homeSections.map(renderSection)}
         {all.length === 0 && (
           <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-500">
             Nothing published yet. Head to the <Link href="/admin" className="text-brand underline">admin</Link> to add content.
@@ -122,22 +160,7 @@ export default async function HomePage({ searchParams }: { searchParams: { type?
             <div className="min-w-0 flex-1">{main}</div>
           </div>
         ) : (
-          <>
-            {!filtering && homeTagList.length > 0 && (
-              <section className="mb-10">
-                <h2 className="mb-3 text-xl font-bold">Browse by topic</h2>
-                <div className="flex flex-wrap gap-2">
-                  {homeTagList.map((t) => (
-                    <Link key={t.id} href={`/topics/${t.slug}`}
-                      className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:border-brand hover:text-brand">
-                      {t.name}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-            {main}
-          </>
+          main
         )}
       </div>
 

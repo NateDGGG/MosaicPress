@@ -25,6 +25,16 @@ export interface CartLineInput {
   quantity: number;
 }
 
+export interface ShippingInput {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  region?: string;
+  postal?: string;
+  country?: string;
+}
+
 export interface CheckoutResult {
   url: string;
   orderId: string;
@@ -42,7 +52,8 @@ function appUrl(): string {
  */
 export async function createCheckout(
   lines: CartLineInput[],
-  email?: string
+  email?: string,
+  shipping?: ShippingInput
 ): Promise<CheckoutResult> {
   const ids = lines.map((l) => l.itemId);
   const items = await prisma.item.findMany({
@@ -75,6 +86,13 @@ export async function createCheckout(
       totalCents,
       currency,
       provider: providerName(),
+      shipName: shipping?.name || null,
+      shipLine1: shipping?.line1 || null,
+      shipLine2: shipping?.line2 || null,
+      shipCity: shipping?.city || null,
+      shipRegion: shipping?.region || null,
+      shipPostal: shipping?.postal || null,
+      shipCountry: shipping?.country || null,
       lines: {
         create: resolved.map((r) => ({
           itemId: r.item.id,
@@ -117,20 +135,34 @@ export async function createCheckout(
   return { url: session.url!, orderId: order.id, mode: "stripe" };
 }
 
-// Mark an order paid and fulfill it: send the receipt email and deliver
-// digital products via signed, order-scoped download links.
+// Process a paid order: (optionally) decrement inventory, deliver digital goods
+// + send the receipt, then set status. Physical orders wait at "paid" until an
+// admin marks them shipped; all-digital orders are fulfilled immediately.
 export async function fulfillOrder(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { lines: { include: { item: { include: { productMeta: true } } } } },
   });
-  if (!order || order.status === "fulfilled") return;
-
-  await prisma.order.update({ where: { id: orderId }, data: { status: "fulfilled" } });
-
-  if (!order.email) return; // nothing to send to
+  if (!order || order.status === "fulfilled" || order.status === "refunded") return;
 
   const settings = await getSettings();
+
+  // Decrement inventory once, on first processing (status still pending).
+  if (settings.trackInventory && order.status === "pending") {
+    for (const l of order.lines) {
+      const inv = l.item.productMeta?.inventory;
+      if (inv != null) {
+        await prisma.productMeta
+          .update({ where: { itemId: l.itemId }, data: { inventory: Math.max(0, inv - l.quantity) } })
+          .catch(() => {});
+      }
+    }
+  }
+
+  const hasPhysical = order.lines.some((l) => (l.item.productMeta?.kind || "physical") !== "digital");
+  await prisma.order.update({ where: { id: orderId }, data: { status: hasPhysical ? "paid" : "fulfilled" } });
+
+  if (!order.email) return; // nothing to send to
   const lines: ReceiptLine[] = order.lines.map((l) => ({
     title: l.title,
     quantity: l.quantity,

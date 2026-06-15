@@ -36,7 +36,6 @@ export async function POST(req: Request) {
       });
     } else if (session.metadata?.orderId) {
       // One-time product order.
-      await prisma.order.update({ where: { id: session.metadata.orderId }, data: { status: "paid" } }).catch(() => {});
       await fulfillOrder(session.metadata.orderId);
     }
   }

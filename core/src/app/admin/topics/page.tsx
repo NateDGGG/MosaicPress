@@ -111,6 +111,7 @@ export default function AdminTopics() {
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex justify-end gap-3">
+                    <a href={`/admin/topics/${t.id}`} className="text-slate-500 hover:underline">Edit</a>
                     <button
                       onClick={() => rename(t.id)}
                       disabled={busy || drafts[t.id] === t.name || !drafts[t.id]?.trim()}

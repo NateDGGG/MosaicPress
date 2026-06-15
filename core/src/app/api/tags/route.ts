@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../lib/auth";
-import { deleteTag, ensureTag, listTags, renameTag, setDefaultTag, setShowOnHome } from "../../../lib/taxonomy";
+import { deleteTag, ensureTag, listTags, renameTag, reorderTopicItems, setDefaultTag, setShowOnHome, setTopicMeta } from "../../../lib/taxonomy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +50,14 @@ export async function PATCH(req: Request) {
     }
     if (body.makeDefault) {
       const tag = await setDefaultTag(body.id);
+      return NextResponse.json({ tag });
+    }
+    if (Array.isArray(body.order)) {
+      await reorderTopicItems(body.id, body.order);
+      return NextResponse.json({ ok: true });
+    }
+    if (typeof body.intro === "string" || typeof body.sortMode === "string") {
+      const tag = await setTopicMeta(body.id, { intro: body.intro, sortMode: body.sortMode });
       return NextResponse.json({ tag });
     }
     if (typeof body.name === "string" && body.name.trim()) {

@@ -44,3 +44,42 @@ export function sanitizeRichText(html: string): string {
 
   return $.html();
 }
+
+// Broader allowlist for full article/blog bodies (headings, lists, images…).
+const ARTICLE_TAGS = new Set([
+  "h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "blockquote",
+  "pre", "code", "a", "strong", "b", "em", "i", "u", "img", "hr", "br", "figure", "figcaption",
+]);
+
+export function sanitizeArticleHtml(html: string): string {
+  if (!html) return "";
+  const $ = cheerio.load(html, null, false);
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    $("*").each((_, el) => {
+      const node = el as any;
+      const tag = (node.tagName || "").toLowerCase();
+      if (!ARTICLE_TAGS.has(tag)) {
+        $(node).replaceWith($(node).contents());
+        changed = true;
+        return;
+      }
+      const attribs = node.attribs || {};
+      const allowed = tag === "a" ? ["href", "title"] : tag === "img" ? ["src", "alt"] : [];
+      for (const attr of Object.keys(attribs)) {
+        if (!allowed.includes(attr)) $(node).removeAttr(attr);
+      }
+      if (tag === "a") {
+        const href = $(node).attr("href") || "";
+        if (!/^(https?:|mailto:|\/)/i.test(href)) $(node).removeAttr("href");
+        else { $(node).attr("rel", "noopener noreferrer nofollow"); $(node).attr("target", "_blank"); }
+      }
+      if (tag === "img") {
+        const src = $(node).attr("src") || "";
+        if (!/^(https?:|\/)/i.test(src)) { $(node).remove(); changed = true; }
+      }
+    });
+    if (!changed) break;
+  }
+  return $.html();
+}

@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { parseBlocks } from "./blocks";
 import type { NormalizedDraft } from "./types";
 import type { BookDraft } from "./books";
 
@@ -159,3 +160,52 @@ export async function createFromBookDraft(draft: BookDraft) {
     include: itemInclude,
   });
 }
+
+// Append an Amazon affiliate/associate tag to a buy URL (if configured).
+export function applyAffiliate(url?: string | null, tag?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (!tag) return url;
+  try {
+    const u = new URL(url);
+    if (/amazon\./.test(u.hostname)) {
+      u.searchParams.set("tag", tag);
+      return u.toString();
+    }
+  } catch {}
+  return url;
+}
+
+// Estimated read time (articles only). ~200 wpm; null when too short to bother.
+function countWords(text?: string | null): number {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+export function readTimeMinutes(item: {
+  type: string; source?: string | null; body?: string | null; summary?: string | null;
+  external?: { readerExcerpt?: string | null } | null;
+}): number | null {
+  if (item.type !== "article" && item.type !== "blog") return null;
+  let words = 0;
+  if (item.type === "blog" && item.body) {
+    // Blog bodies are JSON {format, content}; fall back to raw text.
+    let content = item.body;
+    try { const o = JSON.parse(item.body); if (o && typeof o.content === "string") content = o.content; } catch { /* legacy */ }
+    words = countWords(content.replace(/<[^>]+>/g, " ").replace(/[#>*_`\[\]()!-]/g, " "));
+  } else if (item.source === "hosted" && item.body) {
+    for (const b of parseBlocks(item.body)) {
+      if (b.type === "list") words += b.items.reduce((n, it) => n + countWords(it), 0);
+      else if ("text" in b) words += countWords((b as { text?: string }).text);
+    }
+  } else {
+    words = countWords(item.external?.readerExcerpt) || countWords(item.summary);
+  }
+  if (words < 40) return null;
+  return Math.max(1, Math.round(words / 200));
+}
+export function readTimeLabel(item: Parameters<typeof readTimeMinutes>[0]): string | null {
+  const m = readTimeMinutes(item);
+  return m ? `${m} min read` : null;
+}
+
+export const LEVEL_LABELS: Record<string, string> = {
+  beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced",
+};

@@ -3,6 +3,20 @@ import { prisma } from "./db";
 // Site-wide configuration. Defaults here; overridable via the Setting table
 // (admin → Settings). The product name itself is configurable — "Mosaic" is
 // only the default.
+export type HomeSectionKind = "new" | "featured" | "topics" | "collections" | "type" | "text";
+
+// One block in the home-page layout. Reorderable and individually toggleable
+// in admin → Settings. "text" blocks hold owner-authored copy.
+export interface HomeSection {
+  id: string;
+  kind: HomeSectionKind;
+  enabled: boolean;
+  itemType?: string; // kind="type": article | video | product | link | book
+  limit?: number;    // rail sections (new/featured/type): max cards previewed on home
+  title?: string;    // kind="text" heading (also used as a label override)
+  body?: string;     // kind="text" body copy
+}
+
 export interface SiteSettings {
   siteName: string;
   tagline: string;
@@ -17,7 +31,25 @@ export interface SiteSettings {
   showSidebar: boolean;
   aboutTitle: string;
   aboutBody: string;
+  affiliateTag: string;
+  // Commerce master switch. When off, cart/checkout/shipping, stock badges and
+  // order pages are all hidden — the site runs as a pure catalog.
+  commerceEnabled: boolean;
+  lowStockThreshold: number; // show "Only N left" at/below this; 0 => sold out
+  trackInventory: boolean; // show stock badges + decrement inventory on purchase
+  notifyOnShip: boolean; // email the customer when an order is marked fulfilled (shipped)
+  // Ordered, toggleable home-page sections (incl. custom text blocks).
+  homeSections: HomeSection[];
 }
+
+// The out-of-the-box home layout: new releases, featured, topics, collections.
+export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
+  { id: "new", kind: "new", enabled: true },
+  { id: "featured", kind: "featured", enabled: true },
+  { id: "blog", kind: "type", enabled: true, itemType: "blog", limit: 6 },
+  { id: "topics", kind: "topics", enabled: true },
+  { id: "collections", kind: "collections", enabled: true },
+];
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   siteName: "Mosaic Learn",
@@ -33,6 +65,12 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   showSidebar: false,
   aboutTitle: "About",
   aboutBody: "",
+  affiliateTag: "",
+  commerceEnabled: false,
+  lowStockThreshold: 5,
+  trackInventory: false,
+  notifyOnShip: false,
+  homeSections: DEFAULT_HOME_SECTIONS,
 };
 
 const SETTINGS_KEY = "site";

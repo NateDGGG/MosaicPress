@@ -11,6 +11,7 @@ export default function NewFromLink() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<NormalizedDraft | null>(null);
+  const [detected, setDetected] = useState<string>("");
 
   async function fetchDraft(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +27,7 @@ export default function NewFromLink() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not read that URL.");
       setDraft(data.draft);
+      setDetected(data.draft?.type || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed.");
     } finally {
@@ -87,14 +89,21 @@ export default function NewFromLink() {
 
       {draft && (
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm">
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium capitalize text-slate-600">
-              {draft.type}
-            </span>
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+            <label className="text-slate-600">Type</label>
+            <select
+              value={draft.type}
+              onChange={(e) => update("type", e.target.value as NormalizedDraft["type"])}
+              className="rounded-lg border border-slate-300 px-2 py-1 text-sm capitalize"
+            >
+              {(["article", "video", "product", "link"] as const).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
               External · {draft.external.sourceName || draft.external.sourceDomain}
             </span>
-            <span className="ml-auto text-xs text-slate-400">via {draft.external.adapter}</span>
+            <span className="ml-auto text-xs text-slate-400">detected: {detected} · via {draft.external.adapter}</span>
           </div>
 
           {draft.coverImage && (

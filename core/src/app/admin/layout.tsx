@@ -16,6 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/admin" className="text-sm text-slate-600 hover:text-brand">Content</Link>
         <Link href="/admin/presenters" className="text-sm text-slate-600 hover:text-brand">Presenters</Link>
         <Link href="/admin/topics" className="text-sm text-slate-600 hover:text-brand">Topics</Link>
+        <Link href="/admin/collections" className="text-sm text-slate-600 hover:text-brand">Paths</Link>
         <Link href="/admin/media" className="text-sm text-slate-600 hover:text-brand">Media</Link>
         <Link href="/admin/health" className="text-sm text-slate-600 hover:text-brand">Health</Link>
         <Link href="/admin/orders" className="text-sm text-slate-600 hover:text-brand">Orders</Link>
@@ -34,6 +35,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/new" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
             + New
           </Link>
+          <Link href="/admin/new-blog" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
+            + Write blog
+          </Link>
+          <Link href="/admin/new-link" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
+            + Share link
+          </Link>
           <Link href="/admin/new-from-link" className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark">
             + New from link
           </Link>
@@ -42,6 +49,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <Link href="/admin/bulk-import" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
             + Bulk import
+          </Link>
+          <Link href="/admin/new-product" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
+            + Add product
           </Link>
           <SignOutButton />
         </div>

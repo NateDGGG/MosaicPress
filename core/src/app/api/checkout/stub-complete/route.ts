@@ -14,8 +14,7 @@ export async function GET(req: Request) {
   if (order.provider !== "stub") {
     return NextResponse.json({ error: "Not a stub order." }, { status: 400 });
   }
-  await prisma.order.update({ where: { id: orderId }, data: { status: "paid" } });
-  await fulfillOrder(orderId);
+  await fulfillOrder(orderId); // sets paid (physical) or fulfilled (digital), decrements stock
   const base = process.env.APP_URL || new URL(req.url).origin;
   return NextResponse.redirect(`${base}/checkout/success?order=${orderId}`);
 }

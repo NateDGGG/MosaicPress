@@ -20,6 +20,6 @@ export async function POST(req: Request) {
   if (urls.length === 0) return NextResponse.json({ error: "Paste at least one http(s) URL." }, { status: 400 });
   if (urls.length > 50) return NextResponse.json({ error: "Please import 50 URLs or fewer at a time." }, { status: 400 });
 
-  const results = await bulkImport(urls);
+  const results = await bulkImport(urls, typeof body?.forceType === "string" ? body.forceType : undefined);
   return NextResponse.json({ results });
 }

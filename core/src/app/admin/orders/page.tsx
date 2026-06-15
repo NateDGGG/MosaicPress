@@ -3,6 +3,7 @@ import { prisma } from "../../../lib/db";
 import { getSessionUser, hasRole } from "../../../lib/auth";
 import { priceFormat } from "../../../lib/items";
 import { providerName } from "../../../lib/payments";
+import AdminOrderRow from "../../../components/AdminOrderRow";
 
 export const dynamic = "force-dynamic";
 
@@ -52,25 +53,15 @@ export default async function OrdersPage() {
               <th className="px-3 py-2">Total</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Date</th>
+              <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((o) => (
-              <tr key={o.id} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-mono text-xs text-slate-400">{o.id.slice(0, 8)}</td>
-                <td className="px-3 py-2">{o.lines.map((l) => `${l.title} ×${l.quantity}`).join(", ")}</td>
-                <td className="px-3 py-2 text-slate-500">{o.email || "—"}</td>
-                <td className="px-3 py-2 font-medium">{priceFormat(o.totalCents, o.currency)}</td>
-                <td className="px-3 py-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[o.status] || "bg-slate-100"}`}>
-                    {o.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-slate-400">{new Date(o.createdAt).toLocaleDateString()}</td>
-              </tr>
+              <AdminOrderRow key={o.id} order={{ id: o.id, status: o.status, email: o.email, totalCents: o.totalCents, currency: o.currency, createdAt: o.createdAt.toISOString(), provider: o.provider, lines: o.lines.map((l) => ({ id: l.id, title: l.title, quantity: l.quantity })) }} />
             ))}
             {orders.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-400">No orders yet.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-8 text-center text-slate-400">No orders yet.</td></tr>
             )}
           </tbody>
         </table>

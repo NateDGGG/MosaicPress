@@ -44,7 +44,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const data: any = {};
-  for (const k of ["title", "summary", "coverImage", "author", "body", "featured", "access", "seoTitle", "seoDesc"]) {
+  for (const k of ["title", "summary", "coverImage", "author", "body", "featured", "access", "seoTitle", "seoDesc", "level"]) {
     if (k in body) data[k] = body[k];
   }
   // Presenter: empty string clears the relation.
@@ -72,6 +72,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
   if (body.videoMeta) {
     await prisma.videoMeta.update({ where: { itemId: params.id }, data: body.videoMeta }).catch(() => {});
+  }
+  if (body.linkMeta) {
+    await prisma.linkMeta.update({ where: { itemId: params.id }, data: body.linkMeta }).catch(() => {});
   }
   // Topic tags: replace the set when provided.
   if (Array.isArray(body.tagIds)) {
