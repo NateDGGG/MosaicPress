@@ -1,0 +1,28 @@
+# Caddy reverse proxy for a Mosaic project (two-port model).
+# Caddy gets + renews HTTPS automatically — just point your DNS at the VPS.
+#
+# Replace the domains, drop this in /etc/caddy/Caddyfile, then:
+#   systemctl reload caddy
+#
+# Set in projects/<project>/.env:  APP_URL=https://example.com
+# and in pm2 env:  ADMIN_URL=https://admin.example.com
+
+# ---- Public site -> :3000 ----
+example.com, www.example.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:3000
+    request_body {
+        max_size 25MB        # allow media uploads through the admin
+    }
+}
+
+# ---- Admin (PORT + 1) -> :3001 ----
+# Remove this block to keep the admin off the public internet and reach it via an
+# SSH tunnel instead:  ssh -L 3001:127.0.0.1:3001 you@vps  ->  http://localhost:3001/admin
+admin.example.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:3001
+    request_body {
+        max_size 25MB
+    }
+}

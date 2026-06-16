@@ -279,8 +279,12 @@ model BookMeta {
 // Per-user learning state for an item: bookmarked ("saved") and/or completed.
 model ItemProgress {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  // Progress belongs to EITHER a signed-in user OR an anonymous device cookie.
+  // Exactly one of userId / anonId is set. NULLs are distinct in SQLite/Postgres
+  // unique indexes, so the two compound uniques below don't collide.
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  anonId    String?
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   itemId    String
   saved     Boolean  @default(false)
@@ -288,6 +292,7 @@ model ItemProgress {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, itemId])
+  @@unique([anonId, itemId])
 }
 
 // Contact / lead-capture form submissions.

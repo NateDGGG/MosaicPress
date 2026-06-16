@@ -269,7 +269,7 @@ asset — separate from `summary` (short description) and `body` (long-form).
   items where `featuredNote && commentary`, with fully-rendered markdown. The
   `Item.featuredNote` flag is set from the item editor.
 - **Search:** `scoreItem` indexes commentary at low weight (`lib/search.ts`).
-- **Design rationale:** see `COMMENTARY_DISPLAY_DESIGN.md` at the repo root.
+- **Design rationale:** see `COMMENTARY_DISPLAY_DESIGN.md` in `docs/`.
 
 ## 10d. Lesson progress & resume — the "course player" (`lib/progress.ts`, `lib/learner.ts`)
 

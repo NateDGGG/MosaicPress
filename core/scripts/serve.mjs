@@ -25,6 +25,11 @@ import { spawn } from "node:child_process";
 const mode = process.argv[2] === "start" ? "start" : "dev";
 const PUBLIC_PORT = Number(process.env.PORT || 3000);
 const ADMIN_PORT = Number(process.env.ADMIN_PORT || PUBLIC_PORT + 1);
+// Behind a reverse proxy (production), set ADMIN_URL to the admin's external
+// origin, e.g. https://admin.example.com — cross-surface redirects then point
+// there instead of host:ADMIN_PORT. Left unset locally, it falls back to the
+// dev behaviour (same host, admin port).
+const ADMIN_URL = (process.env.ADMIN_URL || "").replace(/\/$/, "");
 
 function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -106,11 +111,14 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 child.on("exit", (code) => process.exit(code ?? 0));
 
+// External origin of the admin surface (proxy-aware in production).
+const adminBase = (req) => ADMIN_URL || `http://${hostOf(req)}:${ADMIN_PORT}`;
+
 // Public surface: keep admin off it.
 const publicSrv = makeProxy(internalPort, (req, res) => {
   const path = (req.url || "/").split("?")[0];
   if (path === "/admin" || path.startsWith("/admin/")) {
-    redirect(res, `http://${hostOf(req)}:${ADMIN_PORT}${req.url}`);
+    redirect(res, `${adminBase(req)}${req.url}`);
     return true;
   }
   return false;
@@ -120,7 +128,7 @@ const publicSrv = makeProxy(internalPort, (req, res) => {
 const adminSrv = makeProxy(internalPort, (req, res) => {
   const path = (req.url || "/").split("?")[0];
   if (!isAdminPath(path)) {
-    redirect(res, `http://${hostOf(req)}:${ADMIN_PORT}/admin`);
+    redirect(res, `${adminBase(req)}/admin`);
     return true;
   }
   return false;

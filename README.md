@@ -171,6 +171,7 @@ the included Docker setup. See the guides below.
 - [**docs/codelabs/**](docs/codelabs/) — build-it walkthroughs for each kind of site.
 - [**docs/CODEBASE_GUIDE.md**](docs/CODEBASE_GUIDE.md) — architecture tour and a "where do I look for…?" map.
 - [**docs/CODELAB.md**](docs/CODELAB.md) — a developer-oriented hands-on tour.
+- [**docs/DEPLOY.md**](docs/DEPLOY.md) — deploy to a VPS (`deploy/deploy.sh` + pm2/nginx/Caddy templates in `deploy/`).
 
 ## Tests
 

@@ -1,0 +1,54 @@
+# nginx reverse proxy for a Mosaic project (two-port model).
+#   public site  -> 127.0.0.1:3000
+#   admin        -> 127.0.0.1:3001   (PORT + 1)
+#
+# 1) Replace example.com / admin.example.com with your domains.
+# 2) Put this in /etc/nginx/sites-available/mosaic, symlink into sites-enabled,
+#    `nginx -t && systemctl reload nginx`.
+# 3) Add HTTPS:  `certbot --nginx -d example.com -d www.example.com -d admin.example.com`
+#    (certbot rewrites these to listen 443 and adds the 80->443 redirect).
+#
+# Then set in projects/<project>/.env:  APP_URL=https://example.com
+# and in pm2 env:  ADMIN_URL=https://admin.example.com
+
+upstream mosaic_public { server 127.0.0.1:3000; }
+upstream mosaic_admin  { server 127.0.0.1:3001; }
+
+# ---- Public site ----
+server {
+  listen 80;
+  server_name example.com www.example.com;
+
+  location / {
+    proxy_pass         http://mosaic_public;
+    proxy_http_version 1.1;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_set_header   Upgrade           $http_upgrade;
+    proxy_set_header   Connection        "upgrade";
+    client_max_body_size 25m;   # allow image/media uploads through the admin
+  }
+}
+
+# ---- Admin (PORT + 1) ----
+# Optional: only expose this if you want web access to the admin. The most secure
+# alternative is to NOT add this block and reach the admin over an SSH tunnel:
+#   ssh -L 3001:127.0.0.1:3001 you@vps   ->   http://localhost:3001/admin
+server {
+  listen 80;
+  server_name admin.example.com;
+
+  location / {
+    proxy_pass         http://mosaic_admin;
+    proxy_http_version 1.1;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_set_header   Upgrade           $http_upgrade;
+    proxy_set_header   Connection        "upgrade";
+    client_max_body_size 25m;
+  }
+}

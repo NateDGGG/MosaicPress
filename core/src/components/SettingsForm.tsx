@@ -9,6 +9,7 @@ import { STYLE_PRESETS } from "../lib/presets";
 import { fieldKey, type FieldDef } from "../lib/fields";
 import SettingsPreview from "./SettingsPreview";
 import InfoTip from "./InfoTip";
+import HelpLink from "./HelpLink";
 
 export default function SettingsForm({ initial }: { initial: SiteSettings }) {
   const router = useRouter();
@@ -212,7 +213,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
   return (
     <div className="lg:flex lg:items-start lg:gap-6">
       <form onSubmit={save} className="min-w-0 flex-1">
-      <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-200" role="tablist" aria-label="Settings sections">
+      <div className="mb-5 flex flex-wrap items-center gap-1 border-b border-slate-200" role="tablist" aria-label="Settings sections">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -229,11 +230,12 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
             {t.label}
           </button>
         ))}
+        <HelpLink className="ml-auto px-3 py-2 text-sm font-medium text-brand hover:underline">Help guide ↗</HelpLink>
       </div>
 
       <div className={group("appearance")}>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Style preset <InfoTip text="One-click looks that set colors, fonts and shape together. Start here to get a coherent, professional design instantly without touching individual controls." /></h2>
+        <h2 className="mb-1 font-semibold">Style preset <InfoTip text="One-click looks that set colors, fonts and shape together. Start here to get a coherent, professional design instantly without touching individual controls." helpId="style-preset" /></h2>
         <p className="mb-3 text-xs text-slate-500">Pick a look to apply instantly. Fine-tune anything under &ldquo;Advanced appearance&rdquo; below.</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STYLE_PRESETS.map((pr) => (
@@ -252,7 +254,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Identity <InfoTip text="The core text that tells visitors who you are. Appears in the header, browser tab and search results, so it shapes first impressions and brand recognition." /></h2>
+        <h2 className="mb-3 font-semibold">Identity <InfoTip text="The core text that tells visitors who you are. Appears in the header, browser tab and search results, so it shapes first impressions and brand recognition." helpId="identity" /></h2>
         <label className={label}>Site name <InfoTip text="Your brand or site title. Shown in the header (when no logo is set) and the browser tab, and used as the name search engines and social shares display." /></label>
         <input value={s.siteName} onChange={(e) => set("siteName", e.target.value)} className={`${field} mb-3`} />
         <label className={label}>Tagline <InfoTip text="A short line that sums up what the site offers. Used as the hero headline and the default meta description — write it to hook a first-time visitor." /></label>
@@ -262,7 +264,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Footer <InfoTip text="Build out the footer with columns of links and social icons. Helps visitors navigate and find you elsewhere, and signals a complete, trustworthy site." /></h2>
+        <h2 className="mb-1 font-semibold">Footer <InfoTip text="Build out the footer with columns of links and social icons. Helps visitors navigate and find you elsewhere, and signals a complete, trustworthy site." helpId="footer" /></h2>
         <p className="mb-3 text-xs text-slate-500">Link columns and social links. One link per line as <code>Label | https://url</code> (use <code>/path</code> for internal pages).</p>
         <div className="space-y-3">
           {s.footerColumns.map((col, i) => (
@@ -288,7 +290,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
         <div className="space-y-5 border-t border-slate-200 p-5">
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Hero banner <InfoTip text="The large banner at the top of the home page — your single biggest attention-grabber. Use it to set the tone and point visitors at what matters most." /></h2>
+        <h2 className="mb-3 font-semibold">Hero banner <InfoTip text="The large banner at the top of the home page — your single biggest attention-grabber. Use it to set the tone and point visitors at what matters most." helpId="hero" /></h2>
         <label className={label}>Layout <InfoTip text="How the banner is built: a colored gradient, a gradient beside your image, or a full-bleed background photo. Choose image layouts for a bold, magazine feel; gradient for a clean, content-first look." /></label>
         <select value={s.heroLayout} onChange={(e) => set("heroLayout", e.target.value as SiteSettings["heroLayout"])}
           className={`${field} mb-3 max-w-xs`}>
@@ -381,7 +383,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Branding &amp; header <InfoTip text="Your logo and the top navigation bar — present on every page. Getting these right makes the site instantly feel like yours and keeps key actions within reach." /></h2>
+        <h2 className="mb-3 font-semibold">Branding &amp; header <InfoTip text="Your logo and the top navigation bar — present on every page. Getting these right makes the site instantly feel like yours and keeps key actions within reach." helpId="branding" /></h2>
 
         <label className={label}>Logo (falls back to initials when empty) <InfoTip text="Upload a logo to replace the text site-name in the header — the biggest single 'this is my brand' win. If empty, a two-letter monogram is shown instead." /></label>
         <div className="mb-3 flex items-center gap-2">
@@ -460,7 +462,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Theme <InfoTip text="Packaged color + mode + font combinations. Picking one sets the base palette; the Fine-tune controls below override individual pieces." /></h2>
+        <h2 className="mb-1 font-semibold">Theme <InfoTip text="Packaged color + mode + font combinations. Picking one sets the base palette; the Fine-tune controls below override individual pieces." helpId="theme" /></h2>
         <p className="mb-3 text-xs text-slate-500">Pick a packaged theme, then fine-tune below.</p>
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {THEMES.map((t) => (
@@ -518,7 +520,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
           <option value="dark">Dark</option>
         </select>
 
-        <h2 className="mb-3 mt-5 font-semibold">Typography <InfoTip text="The fonts and text size for the whole site. Good type pairing makes content easier to read and signals quality and brand character." /></h2>
+        <h2 className="mb-3 mt-5 font-semibold">Typography <InfoTip text="The fonts and text size for the whole site. Good type pairing makes content easier to read and signals quality and brand character." helpId="theme" /></h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={label}>Heading font <InfoTip text="The font for titles and headings. A distinctive heading font (e.g. a display serif) gives the site character; leave as 'Same as body' for a clean, uniform look." /></label>
@@ -542,14 +544,14 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
           onChange={(e) => set("fontScale", parseInt(e.target.value) / 100)} className="w-full max-w-xs" />
         <p className="mt-1 text-xs text-slate-400">Non-system fonts load from Google Fonts only when selected.</p>
 
-        <h2 className="mb-1 mt-5 font-semibold">Section colors <InfoTip text="Optional explicit colors for the header, hero, call-to-action band and footer. Use these for precise brand control; leave blank and they're derived from your theme automatically." /></h2>
+        <h2 className="mb-1 mt-5 font-semibold">Section colors <InfoTip text="Optional explicit colors for the header, hero, call-to-action band and footer. Use these for precise brand control; leave blank and they're derived from your theme automatically." helpId="section-colors" /></h2>
         <p className="mb-3 text-xs text-slate-500">Optional explicit colors for each band. Leave blank to derive from your theme.</p>
         {roleRow("Header", "headerColor", "#edf2f9", "The color of the top navigation bar. Set it to reinforce your brand at the very top of every page; leave blank to derive a shade from your theme.")}
         {roleRow("Hero", "heroColor", "#edf2f9", "The background of the big home-page banner (gradient mode). Use it to set the first impression; leave blank to use your primary color.")}
         {roleRow("CTA band", "bandColor", "#1e293b", "The 'Create your free account' / call-to-action strip near the bottom of the home page. A contrasting color here draws the eye to the action you want visitors to take.")}
         {roleRow("Footer", "footerColor", "#edf2f9", "The background of the site footer. Match or contrast it with the header to frame the page; leave blank to derive from your theme.")}
 
-        <h2 className="mb-3 mt-5 font-semibold">Cards <InfoTip text="How the repeated content cards (in rails and grids) look. Because cards appear everywhere, small changes here read across the whole site." /></h2>
+        <h2 className="mb-3 mt-5 font-semibold">Cards <InfoTip text="How the repeated content cards (in rails and grids) look. Because cards appear everywhere, small changes here read across the whole site." helpId="cards" /></h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={label}>Image ratio <InfoTip text="The shape of card thumbnails: widescreen 16:9 (video-like), 4:3 (classic), or 1:1 (square). Match it to your imagery so covers aren't awkwardly cropped." /></label>
@@ -576,7 +578,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
 
       <div className={group("home")}>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Home page <InfoTip text="Compose the home page from stackable sections (rails, topic lists, text blocks) in any order. This is how you decide what visitors see first and how they're guided through your content." /></h2>
+        <h2 className="mb-1 font-semibold">Home page <InfoTip text="Compose the home page from stackable sections (rails, topic lists, text blocks) in any order. This is how you decide what visitors see first and how they're guided through your content." helpId="home" /></h2>
         <p className="mb-3 text-xs text-slate-500">
           Choose which sections appear on the home page and in what order. Add your own
           text blocks for announcements or intros. Which topics show under &ldquo;Browse by
@@ -702,7 +704,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Content <InfoTip text="Authoring conveniences and how your editorial voice (commentary) appears to visitors as they browse." /></h2>
+        <h2 className="mb-3 font-semibold">Content <InfoTip text="Authoring conveniences and how your editorial voice (commentary) appears to visitors as they browse." helpId="content" /></h2>
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={s.autoFetchImage}
             onChange={(e) => set("autoFetchImage", e.target.checked)} />
@@ -741,7 +743,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
 
       <div className={group("capabilities")}>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Commerce <InfoTip text="Turn the site into a shop. Optional — leave it off to run as a pure catalog/affiliate site. When on, it adds cart, checkout, inventory and orders." /></h2>
+        <h2 className="mb-3 font-semibold">Commerce <InfoTip text="Turn the site into a shop. Optional — leave it off to run as a pure catalog/affiliate site. When on, it adds cart, checkout, inventory and orders." helpId="commerce" /></h2>
         <label className="mb-3 flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={s.commerceEnabled}
             onChange={(e) => set("commerceEnabled", e.target.checked)} />
@@ -798,7 +800,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Contact form <InfoTip text="A public contact page so visitors can reach you. The #1 way to capture inquiries/leads — submissions are stored in admin and optionally emailed to you." /></h2>
+        <h2 className="mb-3 font-semibold">Contact form <InfoTip text="A public contact page so visitors can reach you. The #1 way to capture inquiries/leads — submissions are stored in admin and optionally emailed to you." helpId="contact" /></h2>
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={s.contactEnabled} onChange={(e) => set("contactEnabled", e.target.checked)} />
           <span>
@@ -820,7 +822,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Newsletter <InfoTip text="An email signup so you can build an audience and bring visitors back. Subscribers are stored and exportable as CSV for your email tool." /></h2>
+        <h2 className="mb-3 font-semibold">Newsletter <InfoTip text="An email signup so you can build an audience and bring visitors back. Subscribers are stored and exportable as CSV for your email tool." helpId="newsletter" /></h2>
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={s.newsletterEnabled} onChange={(e) => set("newsletterEnabled", e.target.checked)} />
           <span>
@@ -843,7 +845,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">Booking <InfoTip text="Let visitors request or schedule time with you — essential for coaching/services. Use the built-in request form, or embed an external scheduler like Calendly." /></h2>
+        <h2 className="mb-3 font-semibold">Booking <InfoTip text="Let visitors request or schedule time with you — essential for coaching/services. Use the built-in request form, or embed an external scheduler like Calendly." helpId="booking" /></h2>
         <label className="flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={s.bookingEnabled} onChange={(e) => set("bookingEnabled", e.target.checked)} />
           <span>
@@ -880,7 +882,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Lesson progress &amp; resume <InfoTip text="Turns the site into a self-paced course player: it remembers how far each visitor has gotten so they can pick up where they left off. Choose whether that requires a login, works anonymously, or is off." /></h2>
+        <h2 className="mb-1 font-semibold">Lesson progress &amp; resume <InfoTip text="Turns the site into a self-paced course player: it remembers how far each visitor has gotten so they can pick up where they left off. Choose whether that requires a login, works anonymously, or is off." helpId="progress" /></h2>
         <p className="mb-3 text-xs text-slate-500">
           Controls whether the site remembers how far a visitor has gotten, so they can pick up where
           they left off (the &ldquo;Resume&rdquo; button on a learning path and &ldquo;Complete &amp; continue&rdquo; on a lesson).
@@ -904,7 +906,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
 
       <div className={group("fields")}>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-1 font-semibold">Custom fields <InfoTip text="Define your own structured fields (prep time, difficulty, ISBN, etc.) that appear on items as a Details table. Use them to capture domain-specific data, power browse filters, and feed rich-result SEO." /></h2>
+        <h2 className="mb-1 font-semibold">Custom fields <InfoTip text="Define your own structured fields (prep time, difficulty, ISBN, etc.) that appear on items as a Details table. Use them to capture domain-specific data, power browse filters, and feed rich-result SEO." helpId="custom-fields" /></h2>
         <p className="mb-3 text-xs text-slate-500">Define structured fields for your items (e.g. prep time, evidence level, price). They appear in the item editor and as a &ldquo;Details&rdquo; table on the page.</p>
         <div className="space-y-3">
           {s.customFields.map((f, i) => (
@@ -950,7 +952,7 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
 
       <div className={group("seo")}>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold">SEO &amp; analytics <InfoTip text="How the site appears in Google and on social shares, plus visitor analytics. Good defaults here improve click-through from search/social and let you measure traffic." /></h2>
+        <h2 className="mb-3 font-semibold">SEO &amp; analytics <InfoTip text="How the site appears in Google and on social shares, plus visitor analytics. Good defaults here improve click-through from search/social and let you measure traffic." helpId="seo" /></h2>
         <label className={label}>Default meta description (blank = tagline) <InfoTip text="The summary search engines and social cards show under your title when a page has none of its own. Write ~150 chars that make someone want to click; falls back to your tagline." /></label>
         <textarea value={s.seoDescription} onChange={(e) => set("seoDescription", e.target.value)} rows={2} className={`${field} mb-3`} />
         <label className={label}>Default social share image (Open Graph) <InfoTip text="The picture shown when your pages are shared on social media or chat. A branded default makes links look polished and boosts click-through." /></label>

@@ -15,8 +15,12 @@
 }
 
 html {
-  /* full-bleed bands use 100vw; prevent the resulting horizontal scrollbar */
+  /* Full-bleed bands use 100vw; prevent the resulting horizontal scrollbar on
+     mobile (where 100vw can exceed the content width). `clip` is preferred —
+     unlike `hidden` it doesn't create a scroll container, so the sticky header
+     keeps working; `hidden` is the fallback for older browsers. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {

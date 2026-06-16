@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { SiteSettings } from "../lib/settings";
 import { fontStack } from "../lib/fonts";
 
@@ -32,6 +33,8 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
   const secTones = [pageBg, dark ? darken(s.primaryColor, 0.34) : tint(s.primaryColor, 0.93), dark ? darken(s.accentColor, 0.34) : tint(s.accentColor, 0.93)];
   const sections = s.homeSections.filter((x) => x.enabled);
   const initials = (s.siteName || "ML").slice(0, 2).toUpperCase();
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const mobile = device === "mobile";
 
   // Reflect the corner-radius personality.
   const bodyFam = (s.bodyFontId && fontStack(s.bodyFontId)) || s.fontFamily;
@@ -54,13 +57,24 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
   const sideImage = s.heroLayout === "split" ? s.heroImage : "";
 
   return (
-    <div className="overflow-hidden border border-slate-300 shadow-sm" style={{ ...r(12), fontFamily: bodyFam }}>
+    <div>
+      <div className="mb-2 flex items-center gap-1">
+        <button type="button" onClick={() => setDevice("desktop")}
+          className={`rounded px-2 py-1 text-xs font-medium ${!mobile ? "bg-brand text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+          🖥 Desktop
+        </button>
+        <button type="button" onClick={() => setDevice("mobile")}
+          className={`rounded px-2 py-1 text-xs font-medium ${mobile ? "bg-brand text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+          📱 Mobile
+        </button>
+      </div>
+    <div className={`overflow-hidden border border-slate-300 shadow-sm ${mobile ? "mx-auto w-[340px]" : "w-full"}`} style={{ ...r(12), fontFamily: bodyFam }}>
       {/* fake browser chrome */}
       <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-100 px-3 py-2">
         <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
         <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-        <span className="ml-2 text-[11px] text-slate-400">home{s.headerSticky ? " · sticky" : ""}</span>
+        <span className="ml-2 text-[11px] text-slate-400">{mobile ? "mobile" : "home"}{s.headerSticky ? " · sticky" : ""}</span>
       </div>
 
       <div style={{ background: pageBg }}>
@@ -80,10 +94,16 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
               </>
             )}
           </div>
-          <div className={`flex gap-2 text-[10px] opacity-80 ${s.headerNavAlign === "center" ? "mx-auto" : "ml-auto"}`}>
-            <span>Home</span><span>Topics</span><span>Paths</span><span>About</span>
-          </div>
-          <span className="text-[10px] font-semibold" style={{ background: s.accentColor, color: "#fff", padding: "2px 8px", ...r(4) }}>Join</span>
+          {mobile ? (
+            <span className="ml-auto text-base leading-none">☰</span>
+          ) : (
+            <>
+              <div className={`flex gap-2 text-[10px] opacity-80 ${s.headerNavAlign === "center" ? "mx-auto" : "ml-auto"}`}>
+                <span>Home</span><span>Topics</span><span>Paths</span><span>About</span>
+              </div>
+              <span className="text-[10px] font-semibold" style={{ background: s.accentColor, color: "#fff", padding: "2px 8px", ...r(4) }}>Join</span>
+            </>
+          )}
         </div>
 
         {/* hero */}
@@ -106,7 +126,7 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
               {s.heroCta2Label && <span className="border border-white/50 px-3 py-1 text-[10px] font-semibold text-white" style={r(6)}>{s.heroCta2Label}</span>}
             </div>
           </div>
-          {sideImage && (
+          {!mobile && sideImage && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={sideImage} alt="" className="hidden h-16 w-28 object-cover sm:block" style={r(10)} />
           )}
@@ -155,9 +175,9 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
                 <div className="mb-1 text-xs font-bold" style={{ color: fg }}>
                   {sec.kind === "type" ? (sec.itemType || "Content") : SECTION_DESC[sec.kind]}
                 </div>
-                <div className="flex gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex-1" style={{ ...r(), aspectRatio: cardAR, boxShadow: cardShadow, background: dark ? "#1b2740" : "#e8edf4" }} />
+                <div className={`flex gap-2 ${mobile ? "overflow-hidden" : ""}`}>
+                  {(mobile ? [0, 1] : [0, 1, 2]).map((i) => (
+                    <div key={i} className={mobile ? "w-[58%] shrink-0" : "flex-1"} style={{ ...r(), aspectRatio: cardAR, boxShadow: cardShadow, background: dark ? "#1b2740" : "#e8edf4" }} />
                   ))}
                 </div>
               </div>
@@ -173,6 +193,7 @@ export default function SettingsPreview({ s }: { s: SiteSettings }) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
