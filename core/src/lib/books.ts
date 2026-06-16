@@ -6,7 +6,10 @@ import { assertSafeUrl } from "./ingest";
 // "about" description — enriched from Open Library. Throws if the link doesn't
 // resolve to a book so the admin can show a clear error.
 
-const UA = "MosaicBot/0.1 (+book import)";
+// Realistic browser UA — book/retail sites (Amazon especially) serve unknown
+// bots a generic anti-bot page, which would mislead the importer.
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const TIMEOUT = 9000;
 
 async function timed(url: URL, accept = "text/html,application/json;q=0.9,*/*"): Promise<Response | null> {
@@ -37,6 +40,27 @@ function isbnFromUrl(url: URL): string | null {
     if (isbn13(v) || isbn10(v)) return v;
   }
   return null;
+}
+
+// Human-readable slug from a product URL (Amazon "/<slug>/dp/<asin>" etc.) — used
+// as a title/author search when the link has no ISBN (ASIN-only listings).
+function urlSlug(url: URL): string | null {
+  const m = url.pathname.match(/^\/([^/]+)\/(?:dp|gp\/product|product)\//i);
+  if (m) {
+    const s = decodeURIComponent(m[1]).replace(/[-_]+/g, " ").trim();
+    if (s.length >= 3 && /[a-z]/i.test(s)) return s;
+  }
+  return null;
+}
+
+// Guard against bad search matches: require the candidate's title/author to share
+// at least one meaningful word with the query (the URL slug).
+function overlaps(query: string, data: { title: string; authors: string[] }): boolean {
+  const words = new Set(query.toLowerCase().split(/\s+/).filter((w) => w.length >= 4));
+  if (words.size === 0) return true;
+  const hay = `${data.title} ${data.authors.join(" ")}`.toLowerCase();
+  for (const w of words) if (hay.includes(w)) return true;
+  return false;
 }
 
 function yearOf(s?: string): number | undefined {
@@ -92,6 +116,60 @@ async function openLibraryByIsbn(isbn: string): Promise<BookData | null> {
     publisher: (b.publishers || [])[0]?.name,
     description,
   };
+}
+
+// Google Books has much broader ISBN coverage than Open Library (including many
+// newer/independent titles), so it's a strong second source when OL has no record.
+function gbToBook(v: any, isbn?: string): BookData | null {
+  if (!v || !v.title) return null;
+  let cover: string | undefined = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail;
+  if (cover) cover = cover.replace(/^http:/, "https:").replace(/&?edge=curl/, "");
+  const ids = Array.isArray(v.industryIdentifiers) ? v.industryIdentifiers : [];
+  const found = ids.find((x: any) => x.type === "ISBN_13")?.identifier || ids.find((x: any) => x.type === "ISBN_10")?.identifier;
+  return {
+    title: v.subtitle ? `${v.title}: ${v.subtitle}` : v.title,
+    authors: Array.isArray(v.authors) ? v.authors : [],
+    description: typeof v.description === "string" ? v.description : undefined,
+    coverImage: cover,
+    isbn: isbn || (found ? normIsbn(found) : undefined),
+    pageCount: v.pageCount,
+    publishedYear: yearOf(v.publishedDate),
+    publisher: v.publisher,
+  };
+}
+
+async function googleBooksByIsbn(isbn: string): Promise<BookData | null> {
+  const u = await assertSafeUrl(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&country=US`);
+  const res = await timed(u, "application/json");
+  if (!res || !res.ok) return null;
+  const j: any = await res.json().catch(() => null);
+  return gbToBook(j?.items?.[0]?.volumeInfo, isbn);
+}
+
+// Free-text search (title/author from a URL slug). Returns the first result that
+// plausibly matches the query, so we don't import an unrelated book.
+async function googleBooksSearch(query: string): Promise<BookData | null> {
+  const u = await assertSafeUrl(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&country=US&maxResults=5`);
+  const res = await timed(u, "application/json");
+  if (!res || !res.ok) return null;
+  const j: any = await res.json().catch(() => null);
+  const items = Array.isArray(j?.items) ? j.items : [];
+  for (const it of items) {
+    const b = gbToBook(it.volumeInfo);
+    if (b && overlaps(query, b)) return b;
+  }
+  return null;
+}
+
+// Reject blocked/anti-bot or generic page titles so we never search for (and
+// match) the wrong book from a junk title like "Amazon.com" or "Robot Check".
+function isGenericTitle(t: string | undefined, host: string): boolean {
+  if (!t) return true;
+  const s = t.trim().toLowerCase();
+  if (s.length < 3) return true;
+  const base = host.replace(/^www\./, "").split(".")[0];
+  if (s === base || s === host || s === "amazon.com") return true;
+  return /robot check|^sorry[\s!,.]|something went wrong|access denied|are you a human|captcha|just a moment|enable javascript|page not found|not found/.test(s);
 }
 
 async function openLibrarySearch(query: string): Promise<BookData | null> {
@@ -184,10 +262,11 @@ export async function importBook(raw: string): Promise<BookDraft> {
   const url = await assertSafeUrl(raw);
   const host = url.hostname.replace(/^www\./, "");
 
-  // 1) ISBN straight from the URL (Amazon ASIN = ISBN-10 for books).
+  // 1) ISBN straight from the URL (Amazon ASIN = ISBN-10 for books). Try Open
+  //    Library, then Google Books (broader coverage) before anything else.
   let ol: BookData | null = null;
   const urlIsbn = isbnFromUrl(url);
-  if (urlIsbn) ol = await openLibraryByIsbn(urlIsbn);
+  if (urlIsbn) ol = (await openLibraryByIsbn(urlIsbn)) || (await googleBooksByIsbn(urlIsbn));
 
   // 2) Read the page for OG/JSON-LD signals + description fallback.
   let page: ReturnType<typeof parsePage> | null = null;
@@ -197,19 +276,42 @@ export async function importBook(raw: string): Promise<BookDraft> {
     if (html) page = parsePage(html, url);
   }
 
-  // 3) If still no structured data, try ISBN/title from the page.
-  if (!ol && page?.isbn) ol = await openLibraryByIsbn(page.isbn);
-  if (!ol && page?.title && (page.isBook || urlIsbn)) ol = await openLibrarySearch(`${page.title} ${page.authors?.[0] || ""}`.trim());
+  // 3) If still no structured data, try ISBN, then a title search from the page.
+  if (!ol && page?.isbn) ol = (await openLibraryByIsbn(page.isbn)) || (await googleBooksByIsbn(page.isbn));
+  // Only search by title when the page clearly is a book AND the title is real —
+  // never off a blocked/anti-bot page title (which is how a junk title matched
+  // the wrong book). Having an ISBN that didn't resolve is NOT enough to search.
+  if (!ol && page?.isBook && page.title && !isGenericTitle(page.title, host)) {
+    ol = await openLibrarySearch(`${page.title} ${page.authors?.[0] || ""}`.trim());
+  }
 
-  // Decide whether this is really a book.
-  const looksLikeBook = !!ol || !!page?.isBook || !!urlIsbn;
+  // 4) Last resort for product links with no usable ISBN (e.g. Amazon ASIN-only
+  //    books, where the page is also blocked): search by the URL slug, which
+  //    carries the title/author. Validated by word-overlap to avoid wrong matches.
+  const slug = urlSlug(url);
+  if (!ol && slug) {
+    ol = await googleBooksSearch(slug);
+    if (!ol) {
+      const ob = await openLibrarySearch(slug);
+      if (ob && overlaps(slug, ob)) ol = ob;
+    }
+  }
+
+  // Decide whether this is really a book. A product-page path (/dp/, /gp/product/)
+  // counts as a book attempt so we give a helpful error rather than "not a book".
+  const productPath = /\/(?:dp|gp\/product|product)\//i.test(url.pathname);
+  const looksLikeBook = !!ol || !!page?.isBook || !!urlIsbn || productPath;
   if (!looksLikeBook) {
     throw new Error("This doesn't look like a book link. Try an Amazon book page, Open Library, Goodreads, Google Books, or a publisher's book page.");
   }
 
-  const title = ol?.title || page?.title;
+  // Prefer resolved book data; only fall back to the page title if it's real
+  // (not a blocked/generic page) so we don't create a mis-titled book.
+  const title = ol?.title || (page && !isGenericTitle(page.title, host) ? page.title : undefined);
   if (!title) {
-    throw new Error("Couldn't read the book's details from that link. Try a different book link (e.g. Open Library or Amazon).");
+    throw new Error(
+      "Couldn't read this book's details — the site may have blocked the lookup, or the ISBN isn't in Open Library or Google Books. Try an Open Library, Google Books, or Goodreads link, or paste the book's ISBN-13."
+    );
   }
 
   const authors = (ol?.authors?.length ? ol.authors : page?.authors) || [];

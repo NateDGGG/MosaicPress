@@ -15,6 +15,10 @@ export interface HomeSection {
   itemType?: string; // kind="type": article | video | product | link | book
   limit?: number;    // rail sections (new/featured/type/topics): max cards previewed on home (per topic for "topics")
   cols?: number;     // kind="topics": columns in the tiled grid (default 4)
+  // new/featured/topics: restrict which asset types appear. "only" = just that
+  // type (e.g. just videos); "except" = everything but that type. Absent = all.
+  filterMode?: "only" | "except";
+  filterType?: string; // article | blog | video | product | link | book
   commentary?: "hidden" | "excerpt" | "full"; // per-section override of the global card commentary mode
   title?: string;    // kind="text"/"feature" heading (also used as a label override)
   body?: string;     // kind="text"/"feature" body copy

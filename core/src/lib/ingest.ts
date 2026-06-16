@@ -91,7 +91,10 @@ function detectType(url: URL): ItemType {
   const shopHosts = ["amazon.", "etsy.com", "ebay.com", "shopify.com", "gumroad.com"];
   if (videoHosts.some((v) => h.includes(v))) return "video";
   if (shopHosts.some((s) => h.includes(s))) return "product";
-  return "article"; // refined later from OG `og:type`
+  // Default to a plain "link". tryHtml() promotes it to "article" only when the
+  // page actually signals an article (og:type=article or an article published
+  // time) — so a generic page becomes a curated link, not a mislabeled article.
+  return "link";
 }
 
 function domainName(url: URL): { domain: string; name: string } {
@@ -219,11 +222,17 @@ async function tryHtml(url: URL): Promise<NormalizedDraft> {
     meta('meta[property="og:price:currency"]') ||
     undefined;
 
-  // Refine the type using og:type / presence of a price.
+  // Refine the type using og:type / a price / article signals. A page is treated
+  // as an "article" only with a real signal; otherwise it falls through to the
+  // detectType() default of "link".
+  const articleSignal =
+    !!ogType?.includes("article") ||
+    !!meta('meta[property="article:published_time"]') ||
+    !!meta('meta[property="og:article:published_time"]');
   let type: ItemType = detectType(url);
   if (ogType?.includes("video")) type = "video";
   else if (ogType?.includes("product") || priceRaw) type = "product";
-  else if (ogType?.includes("article")) type = "article";
+  else if (articleSignal) type = "article";
 
   const draft: NormalizedDraft = {
     type,

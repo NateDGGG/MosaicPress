@@ -192,6 +192,121 @@ export const HELP_SECTIONS: HelpSection[] = [
       </ul>
       <p>A sitemap is served at <code>/sitemap.xml</code> and robots at <code>/robots.txt</code>.</p>`,
   },
+
+  // ---- Admin areas (managing the site day-to-day) ----
+  {
+    id: "manage-content",
+    title: "Content — your items",
+    html: `<p>The dashboard lists everything you've added — articles, blog posts,
+      videos, products, links, and books — with their type, status, and topic. Use
+      the buttons at the top to <a href="#add-content">add content</a>, click an
+      item to edit it, and publish or unpublish it. Select multiple items for bulk
+      actions.</p>`,
+  },
+  {
+    id: "add-content",
+    title: "Adding content",
+    html: `<p>Use the buttons in the admin bar:</p>
+      <ul>
+        <li><strong>+ New</strong> — write an article with the block editor (text, images, embeds).</li>
+        <li><strong>+ Write blog</strong> — a markdown/HTML post.</li>
+        <li><strong>+ Share link</strong> — a curated outbound link with your note.</li>
+        <li><strong>+ New from link</strong> — paste any URL; the type, title, and image are auto-detected.</li>
+        <li><strong>+ Import book</strong> — add a book by ISBN/URL.</li>
+        <li><strong>+ Bulk import</strong> — paste many URLs at once.</li>
+        <li><strong>+ Add product</strong> — a product (needs commerce on to sell).</li>
+      </ul>`,
+  },
+  {
+    id: "presenters",
+    title: "Presenters",
+    html: `<p>Presenters are the hosts/authors you assign to items; each gets a
+      public profile page. Add a name, title, photo, and short bio. Use them when
+      your content has named people behind it (instructors, writers, speakers).</p>`,
+  },
+  {
+    id: "manage-topics",
+    title: "Topics — managing",
+    html: `<p>Create and rename topics here, set which one is the <strong>default</strong>
+      (catch-all) topic, and choose which topics <strong>show on the home page</strong>
+      (those become the tabs in <a href="#topics">Browse by topic</a>). Every item
+      gets at least the default topic so nothing is left uncategorized.</p>`,
+  },
+  {
+    id: "collections",
+    title: "Paths / collections",
+    html: `<p>Collections (shown as “Paths”) are <strong>ordered</strong> groups of
+      items. Use them as courses, learning paths, reading lists, or a shop. Add
+      items and drag them into order; the order drives “Up next” and the
+      <a href="#progress">Resume</a> button on a path.</p>`,
+  },
+  {
+    id: "media",
+    title: "Media library",
+    html: `<p>Files you've uploaded (images, downloads). Upload here or via the
+      image pickers throughout the admin. Stored locally by default, or on S3 if
+      configured.</p>`,
+  },
+  {
+    id: "health",
+    title: "Link health",
+    html: `<p>For external/linked items, this checks each link's status
+      (ok / broken / paywalled), refreshes its cached title and image, and tracks
+      price drift on products. Run it from here or on a schedule.</p>`,
+  },
+  {
+    id: "orders",
+    title: "Orders",
+    html: `<p>Customer orders from the shop (commerce). View an order, mark physical
+      orders as fulfilled (which can email a shipping notification), and resend
+      receipts. Digital products deliver via signed download links.</p>`,
+  },
+  {
+    id: "messages",
+    title: "Messages",
+    html: `<p>Submissions from your <a href="#contact">contact form</a>. Each is
+      stored here, and emailed to your notify address when SMTP is configured.</p>`,
+  },
+  {
+    id: "subscribers",
+    title: "Subscribers",
+    html: `<p>People who signed up via your <a href="#newsletter">newsletter</a>.
+      Export the list as CSV to import into your email tool.</p>`,
+  },
+  {
+    id: "bookings",
+    title: "Bookings",
+    html: `<p>Requests from the built-in <a href="#booking">booking</a> form (when
+      you use “request” mode rather than an embedded scheduler). Each request is
+      stored here and emailed to your notify address if SMTP is set.</p>`,
+  },
+  {
+    id: "testimonials",
+    title: "Testimonials",
+    html: `<p>Add and manage customer/client quotes. Mark ones as “featured” to show
+      them in a Testimonials section on the home page for social proof.</p>`,
+  },
+  {
+    id: "plans",
+    title: "Plans (membership)",
+    html: `<p>Create recurring membership plans (price + interval). Once a plan
+      exists, the Membership UI appears, and you can set any item's access to
+      <strong>Members only</strong> to gate it behind a subscription.</p>`,
+  },
+  {
+    id: "about",
+    title: "About page",
+    html: `<p>Edit the content of your public <code>/about</code> page — your story,
+      bio, credentials, or mission.</p>`,
+  },
+  {
+    id: "users",
+    title: "Users & roles",
+    html: `<p>Staff accounts and their roles, ranked
+      <strong>owner &gt; editor &gt; contributor &gt; member</strong>. Owners
+      manage settings, plans, and users; editors publish; contributors draft;
+      members are customers. Create staff here; customers self-register.</p>`,
+  },
 ];
 
 export const HELP_IDS = new Set(HELP_SECTIONS.map((s) => s.id));

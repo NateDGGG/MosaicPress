@@ -18,6 +18,8 @@ export default function NewLink() {
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [fetchMsg, setFetchMsg] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,6 +28,31 @@ export default function NewLink() {
 
   function toggleTag(id: string) {
     setTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  // Pull title, summary, and a preview image from the URL; fill only empty
+  // fields so it never clobbers what you've already typed. The summary defaults
+  // into the commentary box as a starting point you can edit.
+  async function fetchDetails() {
+    if (!url.trim()) { setError("Add a URL first."); return; }
+    setFetching(true); setFetchMsg(""); setError(null);
+    try {
+      const res = await fetch("/api/link-preview", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Couldn't read that URL.");
+      const p = d.preview || {};
+      let filled = 0;
+      if (p.title && !title.trim()) { setTitle(p.title); filled++; }
+      if (p.description && !commentary.trim()) { setCommentary(p.description); filled++; }
+      if (p.image && !coverImage.trim()) { setCoverImage(p.image); filled++; }
+      setFetchMsg(filled ? "Filled in what we could find — edit as needed." : "Nothing new to fill (fields already set, or none found).");
+    } catch (err) {
+      setFetchMsg(err instanceof Error ? err.message : "Couldn't read that URL.");
+    } finally {
+      setFetching(false);
+    }
   }
 
   async function upload(file: File) {
@@ -72,7 +99,16 @@ export default function NewLink() {
         <input required value={title} onChange={(e) => setTitle(e.target.value)} className={`${field} mb-3`} />
 
         <label className={label}>URL</label>
-        <input required type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={`${field} mb-3`} />
+        <div className="flex gap-2">
+          <input required type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={field} />
+          <button type="button" onClick={fetchDetails} disabled={fetching || !url}
+            className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            {fetching ? "Fetching…" : "Fetch details"}
+          </button>
+        </div>
+        <p className="mb-3 mt-1 text-xs text-slate-500">
+          {fetchMsg || "Paste a link, then “Fetch details” to auto-fill the title, a summary (into commentary), and a preview image."}
+        </p>
 
         <label className={label}>Commentary</label>
         <textarea value={commentary} onChange={(e) => setCommentary(e.target.value)} rows={4}

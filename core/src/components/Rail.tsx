@@ -25,7 +25,9 @@ export default function Rail({
   autoScroll?: boolean; // gently auto-scroll (carousel) when the row overflows
 }) {
   if (items.length === 0) return null;
-  const rowClass = "-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]";
+  // items-start so cards keep their natural height instead of stretching to the
+  // tallest one in the row (which left short cards with trailing whitespace).
+  const rowClass = "-mx-4 flex items-start gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:thin]";
   const cards = items.map((item) => (
     <div key={item.id} className="w-72 shrink-0">
       <ItemCard item={item} commentaryMode={commentaryMode} />

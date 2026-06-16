@@ -658,6 +658,35 @@ export default function SettingsForm({ initial }: { initial: SiteSettings }) {
                       <span>tiles across (default 4).</span>
                     </>
                   )}
+                  {(sec.kind === "new" || sec.kind === "featured" || sec.kind === "topics") && (
+                    <>
+                      <label className="ml-2">Asset type</label>
+                      <select
+                        value={sec.filterMode || ""}
+                        onChange={(e) => patchSection(i, { filterMode: (e.target.value || undefined) as HomeSection["filterMode"] })}
+                        className="rounded border border-slate-300 px-2 py-1"
+                      >
+                        <option value="">All types</option>
+                        <option value="only">Only…</option>
+                        <option value="except">Except…</option>
+                      </select>
+                      {sec.filterMode && (
+                        <select
+                          value={sec.filterType || ""}
+                          onChange={(e) => patchSection(i, { filterType: e.target.value || undefined })}
+                          className="rounded border border-slate-300 px-2 py-1"
+                        >
+                          <option value="">Choose…</option>
+                          <option value="article">Articles</option>
+                          <option value="blog">Blog posts</option>
+                          <option value="video">Videos</option>
+                          <option value="product">Products</option>
+                          <option value="link">Links</option>
+                          <option value="book">Books</option>
+                        </select>
+                      )}
+                    </>
+                  )}
                   <span className="ml-2">Commentary</span>
                   <select
                     value={sec.commentary || ""}

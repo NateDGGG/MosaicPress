@@ -63,8 +63,12 @@ export default function NewFromLink() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-bold">New from link</h1>
       <p className="mb-5 text-sm text-slate-500">
-        Paste any URL — a video, article, product, or page. We detect the type and pull its
-        details, then you review before saving. It renders side-by-side with hosted content.
+        Paste any URL. We detect the type — <span className="font-medium">video</span>,{" "}
+        <span className="font-medium">article</span>, or <span className="font-medium">product</span> — and
+        anything that doesn&rsquo;t match a specific type is saved as a curated{" "}
+        <span className="font-medium">link</span>. Then pull the details and review before saving;
+        you can always change the type below. (Books have their own{" "}
+        <span className="font-medium">Import book</span> button.)
       </p>
 
       <form onSubmit={fetchDraft} className="flex gap-2">

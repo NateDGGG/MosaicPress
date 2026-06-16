@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser, hasRole } from "../../lib/auth";
 import SignOutButton from "../../components/SignOutButton";
+import AdminHelpLink from "../../components/AdminHelpLink";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = getSessionUser();
@@ -60,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/new-product" className="rounded-md border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-blue-50">
             + Add product
           </Link>
+          <AdminHelpLink />
           <SignOutButton />
         </div>
       </div>

@@ -67,19 +67,32 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
 
   const cm = settings.homeCommentary;
   const grid = (items: typeof all) => (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => <ItemCard key={item.id} item={item} commentaryMode={cm} commentaryChars={settings.commentaryExcerptChars} />)}
     </div>
   );
+
+  // Per-section asset-type filter: "only" a type, or "except" a type.
+  const typeFiltered = (items: typeof all, sec: HomeSection) => {
+    if (!sec.filterMode || !sec.filterType) return items;
+    return sec.filterMode === "only"
+      ? items.filter((i) => i.type === sec.filterType)
+      : items.filter((i) => i.type !== sec.filterType);
+  };
 
   // Render one configured home section. Order + visibility come from settings.
   const renderSection = (sec: HomeSection): React.ReactNode => {
     if (!sec.enabled) return null;
     switch (sec.kind) {
-      case "new":
-        return <Rail key={sec.id} title={sec.title || "New releases"} items={sec.limit ? newest.slice(0, sec.limit) : newest} commentaryMode={sec.commentary || cm} autoScroll />;
-      case "featured":
-        return <Rail key={sec.id} title={sec.title || "Featured"} items={sec.limit ? featured.slice(0, sec.limit) : featured} commentaryMode={sec.commentary || cm} />;
+      case "new": {
+        const base = typeFiltered(all, sec);
+        const items = base.slice(0, sec.limit || 12);
+        return <Rail key={sec.id} title={sec.title || "New releases"} items={items} commentaryMode={sec.commentary || cm} autoScroll />;
+      }
+      case "featured": {
+        const base = typeFiltered(featured, sec);
+        return <Rail key={sec.id} title={sec.title || "Featured"} items={sec.limit ? base.slice(0, sec.limit) : base} commentaryMode={sec.commentary || cm} />;
+      }
       case "collections":
         return (
           <div key={sec.id}>
@@ -95,7 +108,8 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         const ofType = all.filter((i) => i.type === t);
         const shown = sec.limit ? ofType.slice(0, sec.limit) : ofType;
         const href = t === "blog" ? "/blog" : t === "link" ? "/links" : `/?type=${t}`;
-        return <Rail key={sec.id} title={sec.title || TYPE_PLURAL[t]} href={href} items={shown} commentaryMode={sec.commentary || cm} />;
+        // Books auto-scroll like New releases (cover-forward shelves read well in motion).
+        return <Rail key={sec.id} title={sec.title || TYPE_PLURAL[t]} href={href} items={shown} commentaryMode={sec.commentary || cm} autoScroll={t === "book"} />;
       }
       case "topics": {
         // Only topics flagged "show on home" (Admin → Topics) appear as tabs.
@@ -117,12 +131,12 @@ export default async function HomePage({ searchParams }: { searchParams: Record<
         const tcm = sec.commentary || cm;
         // Build a panel (grid) per topic; the default topic is the catch-all.
         const withItems = topicsToShow
-          .map((t) => ({ t, items: t.isDefault ? all : all.filter((i) => i.tags.some((tg) => tg.tag.slug === t.slug)) }))
+          .map((t) => ({ t, items: typeFiltered(t.isDefault ? all : all.filter((i) => i.tags.some((tg) => tg.tag.slug === t.slug)), sec) }))
           .filter((x) => x.items.length > 0);
         if (withItems.length === 0) return null;
         const tabs = withItems.map((x) => ({ name: x.t.name, slug: x.t.slug, seeAll: x.items.length > perTopic }));
         const panels = withItems.map((x) => (
-          <div className={`grid gap-5 ${colsClass[cols]}`}>
+          <div className={`grid items-start gap-5 ${colsClass[cols]}`}>
             {x.items.slice(0, perTopic).map((item) => (
               <ItemCard key={item.id} item={item} commentaryMode={tcm} commentaryChars={settings.commentaryExcerptChars} />
             ))}
